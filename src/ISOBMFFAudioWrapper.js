@@ -26,9 +26,9 @@ import ISOBMFFBuilder from "./isobmff/ISOBMFFBuilder";
  * @description Generator that takes in MPEG 1/2, AAC, or Ogg FLAC and yields Fragmented MP4 (ISOBMFF)
  */
 export default class ISOBMFFAudioWrapper {
-  constructor(mimeType) {
-    this.MIN_FRAMES = 4;
-    this.MIN_FRAMES_LENGTH = 1022;
+  constructor(mimeType, options = {}) {
+    this.MIN_FRAMES = options.minFramesPerFragment || 4;
+    this.MIN_FRAMES_LENGTH = options.minBytesPerFragment || 1022;
 
     if (mimeType.match(/aac/)) {
       this._codecParser = new AACParser();

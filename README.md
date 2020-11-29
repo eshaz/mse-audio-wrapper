@@ -23,7 +23,7 @@ A class that takes in audio (MP3, AAC, or OGG Flac) and outputs fragmented ISOBM
 
 1. To use `ISOBMFFAudioWrapper`, create a new instance of the class by passing in the mimetype of your audio data.
 
-    *Note: For directly converting from an HTTP response, use the mimetype contained in the   `Content-Type`header*
+    *Note: For directly converting from an HTTP response, use the mimetype contained in the `Content-Type` header*
     
     <pre>
     import ISOBMFFAudioWrapper from "isobmff-audio";
@@ -48,7 +48,7 @@ A class that takes in audio (MP3, AAC, or OGG Flac) and outputs fragmented ISOBM
 
     *Note: Any data that does not conform to the instance's mimetype will be discarded.*
 
-  * Once enough data has been received to form at least 4 complete audio frames, and 1022 bytes of audio data, the initial segment will be returned along with a movie fragment containing the audio data.
+  * Once enough data has been received to form at least 4 complete audio frames, and 1022 bytes of audio data, the initial segment will be returned along with a movie fragment containing the audio data. These values are user configurable using the `options` parameter in the constructor.
 
     * 1st Iteration
     
@@ -72,19 +72,26 @@ A class that takes in audio (MP3, AAC, or OGG Flac) and outputs fragmented ISOBM
 
 ### Methods
 
-`const wrapper = new ISOBMFFAudioWrapper("audio/mpeg");`
+`const wrapper = new ISOBMFFAudioWrapper("audio/mpeg", {minFramesPerFragment: 2, minBytesPerFragment: 576});`
 * `constructor`
-  * parameters:
-    * `mimetype` Format of the audio to wrap into ISOBMFF
-  * Supported `mimetypes` include:
-    * MP3 - `audio/mpeg`
-    * AAC - `audio/aac`, `audio/aacp`
-    * FLAC - `audio/flac`
-    * Ogg FLAC - `application/ogg`, `audio/ogg`
+  * Creates a new instance of ISOMBFFAudioWrapper that can be used to wrap audio for a given mimetype.
+  * Parameters:
+    * `mimetype` *required* Format of the audio to wrap into ISOBMFF
+      * MP3 - `audio/mpeg`
+      * AAC - `audio/aac`, `audio/aacp`
+      * FLAC - `audio/flac`
+      * Ogg FLAC - `application/ogg`, `audio/ogg`
+    * `options` *optional*
+      * `options.minFramesPerFragment` *optional* Minimum audio frames to store before returning a fragment
+        * Accepts an integer greater than 0
+        * Defaults to `4`
+      * `options.minBytesPerFragment` *optional* Minimum audio bytes to store before returning a fragment
+        * Accepts an integer greater than 0
+        * Defaults to `1022`
 * `wrapper.iterator(data)`
+  * Returns an Iterator that can be used in a `for ...of` loop to return ISOBMFF
   * Parameters:
     * `data` Uint8Array of audio data to wrap
-  * Returns an Iterator that can be used in a `for ...of` loop to return ISOBMFF
 * `wrapper.mimeType`
   * Getter that returns the mimeType of the wrapped audio data
   * Examples:
