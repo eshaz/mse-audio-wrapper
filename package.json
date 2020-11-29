@@ -1,6 +1,6 @@
 {
   "name": "isobmff-audio",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "Library that wraps audio in the ISO Base Media File Format (MPEG-4 Part 12)",
   "main": "index.js",
   "keywords": [
