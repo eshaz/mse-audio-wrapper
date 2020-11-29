@@ -50,9 +50,9 @@ L   n   Segment table (n=page_segments+26).
         
 */
 
-export default class OGGPageHeader {
-  static OggS = 0x4f676753;
+const OggS = 0x4f676753;
 
+export default class OGGPageHeader {
   static getHeader(buffer) {
     // Must be at least 28 bytes.
     if (buffer.length < 28) return null;
@@ -65,7 +65,7 @@ export default class OGGPageHeader {
 
     // Bytes (1-4 of 28)
     // Frame sync (must equal OggS): `AAAAAAAA|AAAAAAAA|AAAAAAAA|AAAAAAAA`:
-    if (view.getUint32(0) !== OGGPageHeader.OggS) {
+    if (view.getUint32(0) !== OggS) {
       return null;
     }
 
