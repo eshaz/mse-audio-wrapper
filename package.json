@@ -1,0 +1,37 @@
+{
+  "name": "isobmff-audio",
+  "version": "1.0.0",
+  "description": "Library that wraps audio in the ISO Base Media File Format (MPEG-4 Part 12)",
+  "main": "index.js",
+  "keywords": [
+    "isobmff",
+    "mp4",
+    "fmp4",
+    "fragmented mp4",
+    "mpeg4",
+    "mp3",
+    "mpeg",
+    "aac",
+    "flac",
+    "ogg"
+  ],
+  "scripts": {
+    "format": "prettier --write '**/*.js' --write '**/*.json'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eshaz/isobmff-audio.git"
+  },
+  "author": {
+    "name": "Ethan Halsall",
+    "email": "ethanhalsall@pm.me"
+  },
+  "license": "LGPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/eshaz/isobmff-audio/issues"
+  },
+  "homepage": "https://github.com/eshaz/isobmff-audio#readme",
+  "devDependencies": {
+    "prettier": "^2.2.1"
+  }
+}

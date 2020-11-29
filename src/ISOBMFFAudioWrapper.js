@@ -1,16 +1,18 @@
 /* Copyright 2020 Ethan Halsall
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
+    
+    This file is part of isobmff-audio.
+    
+    isobmff-audio is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
+    isobmff-audio is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+    GNU Lesser General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
+    You should have received a copy of the GNU Lesser General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 */
 
@@ -23,7 +25,7 @@ import ISOBMFFBuilder from "./isobmff/ISOBMFFBuilder";
 /**
  * @description Generator that takes in MPEG 1/2, AAC, or Ogg FLAC and yields Fragmented MP4 (ISOBMFF)
  */
-export default class FragmentedMPEG {
+export default class ISOBMFFAudioWrapper {
   static MIN_FRAMES = 4;
   static MIN_FRAMES_LENGTH = 1022;
 
@@ -93,7 +95,7 @@ export default class FragmentedMPEG {
     this._ISOBMFFBuilder = new ISOBMFFBuilder(this.mimeType);
 
     // yield the movie box along with a movie fragment containing frames
-    let fMP4 = FragmentedMPEG.appendBuffers(
+    let fMP4 = ISOBMFFAudioWrapper.appendBuffers(
       this._ISOBMFFBuilder.getMovieBox(frames[0].header),
       this._ISOBMFFBuilder.wrapFrames(frames)
     );
@@ -118,7 +120,7 @@ export default class FragmentedMPEG {
       codecData = yield;
     }
 
-    this._codecData = FragmentedMPEG.appendBuffers(this._codecData, codecData);
+    this._codecData = ISOBMFFAudioWrapper.appendBuffers(this._codecData, codecData);
   }
 
   /**
@@ -133,9 +135,9 @@ export default class FragmentedMPEG {
     this._codecData = this._codecData.subarray(remainingData);
 
     if (
-      this._frames.length >= FragmentedMPEG.MIN_FRAMES &&
+      this._frames.length >= ISOBMFFAudioWrapper.MIN_FRAMES &&
       this._frames.reduce((acc, frame) => acc + frame.data.length, 0) >=
-        FragmentedMPEG.MIN_FRAMES_LENGTH
+        ISOBMFFAudioWrapper.MIN_FRAMES_LENGTH
     ) {
       const frames = this._frames;
       this._frames = [];
