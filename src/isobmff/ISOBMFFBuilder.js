@@ -64,7 +64,6 @@ export default class ISOBMFFBuilder {
         0x00,0x00,0x00,0x00,0x00,0x00, // reserved
         0x00,0x01, // data reference index
         0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, // reserved
-        0x00,0x00,0x00,0x00, // reserved
         0x00,header.channels, // channel count
         0x00,header.sampleSize, // PCM bitrate (16bit)
         0x00,0x00, // predefined
@@ -76,15 +75,15 @@ export default class ISOBMFFBuilder {
           /* prettier-ignore */
           contents: [0x00, // version
             header.channels, // output channel count
-            0x00,0x00, // pre skip
-            ...Box.getUint32(header.sampleRate),// input sample rate
-            0x00,0x00, // output gain
-            // channel mapping family int(8)
-            // if (ChannelMappingFamily != 0) {
-            //   stream count int(8)
-            //   coupled count int(8)
-            //   channel mapping int(8 * OutputChannelCount) ChannelMapping
-            // }
+            ...Box.getUint16(header.preSkip), // pre skip
+            ...Box.getUint32(header.inputSampleRate),// input sample rate
+            ...Box.getInt16(header.outputGain), // output gain
+            header.channelMappingFamily, // channel mapping family int(8)
+            ...(header.channelMappingFamily !== 0 ? [
+              header.streamCount,
+              header.coupledStreamCount,
+              ...header.channelMappingTable // channel mapping table
+            ] : [])
           ],
         }),
       ],

@@ -20,9 +20,13 @@ import CodecFrame from "../CodecFrame";
 import FlacHeader from "./FlacHeader";
 
 export default class FlacFrame extends CodecFrame {
-  constructor(data) {
-    let header = FlacHeader.getHeader(data);
+  constructor(data, header) {
+    super(header, data, data.length);
+  }
 
-    super(header, header && data, header && data.length);
+  static getFrame(segment) {
+    const header = FlacHeader.getHeader(segment);
+
+    return header && new FlacFrame(segment, header);
   }
 }

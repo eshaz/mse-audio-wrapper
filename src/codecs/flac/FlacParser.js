@@ -22,6 +22,7 @@ import FlacFrame from "../flac/FlacFrame";
 export default class FlacParser extends CodecParser {
   constructor() {
     super();
+    this.CodecFrame = FlacFrame;
     this._maxHeaderLength = 26;
   }
 
@@ -29,7 +30,10 @@ export default class FlacParser extends CodecParser {
     return "flac";
   }
 
-  parseFrames(data) {
-    return this.variableLengthFrame(FlacFrame, data);
+  parseFrames(oggPage) {
+    return {
+      frames: oggPage.segments.map(FlacFrame.getFrame).filter(Boolean),
+      remainingData: 0,
+    };
   }
 }

@@ -16,22 +16,20 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 */
 
-import FlacHeader from "./flac/FlacHeader";
-
 /**
  * @abstract
  * @description Abstract class containing methods for parsing codec frames
  */
 export default class CodecParser {
-  syncFrame(CodecFrame, data, remainingData = 0) {
-    let frame = new CodecFrame(data.subarray(remainingData));
+  syncFrame(data, remainingData = 0) {
+    let frame = new this.CodecFrame(data.subarray(remainingData));
 
     while (
       !frame.header &&
       remainingData + this._maxHeaderLength < data.length
     ) {
       remainingData += frame.length || 1;
-      frame = new CodecFrame(data.subarray(remainingData));
+      frame = new this.CodecFrame(data.subarray(remainingData));
     }
 
     return { frame, remainingData };
@@ -42,9 +40,9 @@ export default class CodecParser {
    * @param {Uint8Array} data Codec data that should contain a sequence of known length frames.
    * @returns {object} Object containing the actual offset and frame. Frame is undefined if no valid header was found
    */
-  fixedLengthFrame(CodecFrame, data) {
+  fixedLengthFrame(data) {
     // initial sync
-    let { frame, remainingData } = this.syncFrame(CodecFrame, data);
+    let { frame, remainingData } = this.syncFrame(data);
     let frames = [];
 
     // find a header in the data
@@ -53,7 +51,7 @@ export default class CodecParser {
       frame.length + remainingData + this._maxHeaderLength < data.length
     ) {
       // check if there is a valid frame immediately after this frame
-      const nextFrame = new CodecFrame(
+      const nextFrame = new this.CodecFrame(
         data.subarray(frame.length + remainingData)
       );
 
@@ -65,7 +63,7 @@ export default class CodecParser {
       } else {
         // frame is invalid and must re-sync
         remainingData++;
-        const syncResult = this.syncFrame(CodecFrame, data, remainingData);
+        const syncResult = this.syncFrame(data, remainingData);
         remainingData += syncResult.remainingData;
         frame = syncResult.frame;
       }
@@ -77,31 +75,26 @@ export default class CodecParser {
     };
   }
 
-  variableLengthFrame(CodecFrame, data, isComplete) {
+  variableLengthFrame(data, isComplete) {
     let frameLocations = [];
     let frames = [];
     let nextFrame = null;
     let remainingData = 0;
 
     for (let readPosition = 0; readPosition <= data.length; readPosition++) {
-      if (
-        data[readPosition] === 0xff &&
-        (data[readPosition + 1] === 0xf8 || data[readPosition + 1] === 0xf9)
-      ) {
-        const header = FlacHeader.getHeader(data.subarray(readPosition));
+      const header = this.getHeader(data, readPosition);
 
-        if (header) {
-          if (nextFrame === null) {
-            nextFrame = header.nextFrame;
-            frameLocations.push(readPosition);
+      if (header) {
+        if (nextFrame === null) {
+          nextFrame = header.nextFrame;
+          frameLocations.push(readPosition);
 
-            readPosition += header.length;
-          } else if (header.currentFrame === nextFrame) {
-            frameLocations.push(readPosition);
+          readPosition += header.length;
+        } else if (header.currentFrame === nextFrame) {
+          frameLocations.push(readPosition);
 
-            nextFrame = header.nextFrame;
-            readPosition += header.length;
-          }
+          nextFrame = header.nextFrame;
+          readPosition += header.length;
         }
       }
     }
@@ -111,7 +104,9 @@ export default class CodecParser {
 
     for (let i = 0; i < frameLocations.length - lengthOffset; i++) {
       frames.push(
-        new CodecFrame(data.subarray(frameLocations[i], frameLocations[i + 1]))
+        new this.CodecFrame(
+          data.subarray(frameLocations[i], frameLocations[i + 1])
+        )
       );
 
       remainingData = frameLocations[i];

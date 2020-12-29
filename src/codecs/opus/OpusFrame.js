@@ -17,30 +17,11 @@
 */
 
 import CodecFrame from "../CodecFrame";
-import OGGPageHeader from "./OGGPageHeader";
 
-export default class OGGPage extends CodecFrame {
-  constructor(data) {
-    const oggPage = OGGPageHeader.getHeader(data);
+export default class OpusFrame extends CodecFrame {
+  constructor(data, header) {
+    super(header, header && data, header && data.length);
 
-    super(
-      oggPage,
-      oggPage &&
-        data.subarray(oggPage.length, oggPage.length + oggPage.dataByteLength),
-      oggPage && oggPage.length + oggPage.dataByteLength
-    );
-
-    if (oggPage) {
-      let offset = oggPage.length;
-      this._segments = oggPage.pageSegmentTable.map((segmentLength) => {
-        const segment = data.subarray(offset, offset + segmentLength);
-        offset += segmentLength;
-        return segment;
-      });
-    }
-  }
-
-  get segments() {
-    return this._segments;
+    this._header.sampleLength = data.length;
   }
 }
