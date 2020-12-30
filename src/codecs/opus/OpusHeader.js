@@ -37,18 +37,18 @@ https://tools.ietf.org/html/rfc7845.html
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 Letter 	Length (bits) 	Description
-A 	64 	Magic Signature - OpusHead
-B   8   Version number - 00000001
-C 	8 	Output channel count (unsigned)
-D 	16  Pre-skip (unsigned, little endian)
-E 	32 	Sample rate (unsigned, little endian)
-F   16  Output Gain (signed, little endian)
-G   8   Channel Mapping family (unsigned)
+A  64  Magic Signature - OpusHead
+B  8   Version number - 00000001
+C  8   Output channel count (unsigned)
+D  16  Pre-skip (unsigned, little endian)
+E  32  Sample rate (unsigned, little endian)
+F  16  Output Gain (signed, little endian)
+G  8   Channel Mapping family (unsigned)
 
 // if(channel mapping !== 0)
-H   8   Stream count (unsigned)
-I   8   Coupled Stream Count (unsigned)
-J   8*C Channel Mapping
+H  8   Stream count (unsigned)
+I  8   Coupled Stream Count (unsigned)
+J  8*C Channel Mapping
 */
 
 import CodecHeader from "../CodecHeader";
@@ -147,7 +147,7 @@ export default class OpusHeader extends CodecHeader {
 
   /**
    * @private
-   * Call FlacHeader.getHeader(Array<Uint8>) to get instance
+   * Call OpusHeader.getHeader(Array<Uint8>) to get instance
    */
   constructor(header) {
     super(header);

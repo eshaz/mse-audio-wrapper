@@ -35,8 +35,9 @@ export default class FlacParser extends CodecParser {
       return {
         frames: oggPage.segments
           .filter(
-            (segment) => segment[0] === 0xff // &&
-            // (segment[1] === 0xf8 || segment[1] === 0xf9)
+            (segment) =>
+              segment[0] === 0xff &&
+              (segment[1] === 0xf8 || segment[1] === 0xf9)
           )
           .map((segment) => new FlacFrame(segment, this._initialHeader)),
         remainingData: 0,

@@ -126,6 +126,7 @@ export default class OGGPageHeader {
       const segmentByte = buffer[i + 27];
       header.dataByteLength += segmentByte;
       segmentLength += segmentByte;
+
       if (segmentByte !== 0xff) {
         header.pageSegmentTable.push(segmentLength);
         segmentLength = 0;
