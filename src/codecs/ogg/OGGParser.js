@@ -45,7 +45,7 @@ export default class OGGParser extends CodecParser {
       this._codec = "opus";
       this._parser = new OpusParser();
     } else if (this._matchBytes(/\x01vorbis/, data.subarray(0, 7))) {
-      throw new Error("Vorbis is currently not supported by ISOBMFF Audio");
+      throw new Error("Vorbis is currently not supported by isobmff-audio");
     }
   }
 
