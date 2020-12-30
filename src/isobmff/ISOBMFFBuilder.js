@@ -400,7 +400,7 @@ export default class ISOBMFFBuilder {
                   // * `..|........|......F.` sample-description-index-present
                   // * `..|........|.......G` base-data-offset-present
                   0x00,0x00,0x00,0x01, // track id
-                  ...Box.getUint32(frames[0].header.sampleLength), // default sample duration
+                  ...Box.getUint32(frames[0].header.sampleLength), // default samples per entry
                 ],
               }),
               new Box("tfdt", {
