@@ -94,7 +94,9 @@ export default class OpusHeader extends CodecHeader {
     // * `00000001`: Version number
     if (data[8] !== 1) return null;
 
-    const view = new DataView(Uint8Array.from([...data]).buffer);
+    const view = new DataView(
+      Uint8Array.from([...data.subarray(0, 19)]).buffer
+    );
 
     const header = {};
     header.length = 19;

@@ -26,7 +26,7 @@ export default class Box extends ISOBMFFObject {
    * @param {Array<Box>} [params.boxes] Array of boxes to insert into this box
    */
   constructor(name, { contents = [], boxes = [] } = {}) {
-    super(name, [...Box.stringToByteArray(name)].concat(contents), boxes);
+    super(name, Box.stringToByteArray(name).concat(contents), boxes);
 
     this.LENGTH_SIZE = 4;
   }
@@ -46,9 +46,9 @@ export default class Box extends ISOBMFFObject {
   get contents() {
     const contents = super.contents;
 
-    return [...Box.getUint32(this.LENGTH_SIZE + contents.length)].concat(
-      contents
-    );
+    return [
+      ...ISOBMFFObject.getUint32(this.LENGTH_SIZE + contents.length),
+    ].concat(contents);
   }
 
   /**
