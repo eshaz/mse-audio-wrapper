@@ -4,7 +4,7 @@
 
  * [**API**](#isobmffaudio)
    * [**ISOBMFFAudioWrapper**](#ISOBMFFAudioWrapper)
-     * Takes in audio (MP3, AAC, or OGG Flac) and outputs fragmented ISOBMFF
+     * Takes in audio (MP3, AAC, OGG Flac, or OGG Opus) and outputs fragmented ISOBMFF
  * [**Demo**](#demo)
    * React application that demonstrates ISOBMFFAudioWrapper being used to support the MediaSource Extensions API with `icecast-metadata-js`
    * Checkout the demo [here](https://eshaz.github.io/icecast-metadata-js/)!
@@ -17,7 +17,7 @@
 
 https://github.com/eshaz/isobmff-audio/tree/master/src/ISOBMFFAudioWrapper.js
 
-A class that takes in audio (MP3, AAC, or OGG Flac) and outputs fragmented ISOBMFF.
+A class that takes in audio (MP3, AAC, OGG Flac, or OGG Opus) and outputs fragmented ISOBMFF.
 
 ### Usage
 
@@ -81,6 +81,7 @@ A class that takes in audio (MP3, AAC, or OGG Flac) and outputs fragmented ISOBM
       * AAC - `audio/aac`, `audio/aacp`
       * FLAC - `audio/flac`
       * Ogg FLAC - `application/ogg`, `audio/ogg`
+      * Ogg Opus - `application/ogg`, `audio/ogg`
     * `options` *optional*
       * `options.minFramesPerFragment` *optional* Minimum audio frames to store before returning a fragment
         * Accepts an integer greater than 0
@@ -94,10 +95,12 @@ A class that takes in audio (MP3, AAC, or OGG Flac) and outputs fragmented ISOBM
     * `data` Uint8Array of audio data to wrap
 * `wrapper.mimeType`
   * Getter that returns the mimeType of the wrapped audio data
+    * For OGG, the codec is embedded in the first OGG page. This returns `audio/mp4;codecs="flac,opus` before that first page is read.
   * Examples:
     * MP3 - `audio/mp4;codecs="mp3"`
     * AAC - `audio/mp4;codecs="mp4a.40.2"`
     * FLAC - `audio/mp4;codecs="flac"`
+    * OPUS - `audio/mp4;codecs="opus"`
 ---
 
 

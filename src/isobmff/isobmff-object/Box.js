@@ -26,7 +26,7 @@ export default class Box extends ISOBMFFObject {
    * @param {Array<Box>} [params.boxes] Array of boxes to insert into this box
    */
   constructor(name, { contents = [], boxes = [] } = {}) {
-    super(name, [...Box.stringToByteArray(name)].concat(contents), boxes);
+    super(name, Box.stringToByteArray(name).concat(contents), boxes);
 
     this.LENGTH_SIZE = 4;
   }
@@ -41,36 +41,14 @@ export default class Box extends ISOBMFFObject {
   }
 
   /**
-   * @description Converts a JavaScript number to Uint32
-   * @param {number} number Number to convert
-   * @returns {Uint32}
-   */
-  static getUint32(number) {
-    const bytes = new Uint8Array(4);
-    new DataView(bytes.buffer).setUint32(0, number);
-    return bytes;
-  }
-
-  /**
-   * @description Converts a JavaScript number to Uint32
-   * @param {number} number Number to convert
-   * @returns {Uint32}
-   */
-  static getUint16(number) {
-    const bytes = new Uint8Array(2);
-    new DataView(bytes.buffer).setUint16(0, number);
-    return bytes;
-  }
-
-  /**
    * @returns {Array<Uint8>} Contents of this box
    */
   get contents() {
     const contents = super.contents;
 
-    return [...Box.getUint32(this.LENGTH_SIZE + contents.length)].concat(
-      contents
-    );
+    return [
+      ...ISOBMFFObject.getUint32(this.LENGTH_SIZE + contents.length),
+    ].concat(contents);
   }
 
   /**
