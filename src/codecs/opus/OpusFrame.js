@@ -23,6 +23,6 @@ export default class OpusFrame extends CodecFrame {
     super(header, header && data, header && data.length);
 
     this._header.sampleLength = data.length;
-    this._packet = packet;
+    this._header.packet = packet;
   }
 }

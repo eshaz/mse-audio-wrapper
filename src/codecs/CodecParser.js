@@ -74,47 +74,4 @@ export default class CodecParser {
       remainingData,
     };
   }
-
-  variableLengthFrame(data, isComplete) {
-    let frameLocations = [];
-    let frames = [];
-    let nextFrame = null;
-    let remainingData = 0;
-
-    for (let readPosition = 0; readPosition <= data.length; readPosition++) {
-      const header = this.getHeader(data, readPosition);
-
-      if (header) {
-        if (nextFrame === null) {
-          nextFrame = header.nextFrame;
-          frameLocations.push(readPosition);
-
-          readPosition += header.length;
-        } else if (header.currentFrame === nextFrame) {
-          frameLocations.push(readPosition);
-
-          nextFrame = header.nextFrame;
-          readPosition += header.length;
-        }
-      }
-    }
-
-    // if there is a complete set of frames, assume the last frame is valid
-    const lengthOffset = isComplete ? 0 : 1;
-
-    for (let i = 0; i < frameLocations.length - lengthOffset; i++) {
-      frames.push(
-        new this.CodecFrame(
-          data.subarray(frameLocations[i], frameLocations[i + 1])
-        )
-      );
-
-      remainingData = frameLocations[i];
-    }
-
-    return {
-      frames,
-      remainingData,
-    };
-  }
 }

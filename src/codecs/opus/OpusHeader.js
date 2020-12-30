@@ -18,8 +18,6 @@
 
 /*
 https://tools.ietf.org/html/rfc7845.html
-
-
  0                   1                   2                   3
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -37,7 +35,6 @@ https://tools.ietf.org/html/rfc7845.html
 :               Optional Channel Mapping Table...               :
 |                                                               |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
 
 Letter 	Length (bits) 	Description
 A 	64 	Magic Signature - OpusHead
@@ -160,6 +157,10 @@ export default class OpusHeader extends CodecHeader {
     this._preSkip = header.preSkip;
     this._sampleSize = 16;
     this._streamCount = header.streamCount;
+  }
+
+  set packet(opusPacket) {
+    this._packet = opusPacket;
   }
 
   get channelMappingFamily() {
