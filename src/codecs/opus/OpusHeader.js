@@ -142,6 +142,8 @@ export default class OpusHeader extends CodecHeader {
       header.channelMappingTable = data.subarray(21, header.channels + 21);
     }
 
+    header.bytes = data.subarray(0, header.length);
+
     return new OpusHeader(header);
   }
 
@@ -154,11 +156,20 @@ export default class OpusHeader extends CodecHeader {
     this._channelMappingFamily = header.channelMappingFamily;
     this._channelMappingTable = header.channelMappingTable;
     this._coupledStreamCount = header.coupledStreamCount;
+    this._bytes = header.bytes;
     this._inputSampleRate = header.inputSampleRate;
     this._outputGain = header.outputGain;
     this._preSkip = header.preSkip;
-    this._sampleSize = 16;
+    this._bitDepth = 16;
     this._streamCount = header.streamCount;
+  }
+
+  set packet(packet) {
+    this._packet = packet;
+  }
+
+  get packet() {
+    return this._packet;
   }
 
   get channelMappingFamily() {
@@ -167,6 +178,10 @@ export default class OpusHeader extends CodecHeader {
 
   get coupledStreamCount() {
     return this._coupledStreamCount;
+  }
+
+  get bytes() {
+    return this._bytes;
   }
 
   get preSkip() {
@@ -181,8 +196,8 @@ export default class OpusHeader extends CodecHeader {
     return this._inputSampleRate;
   }
 
-  get sampleSize() {
-    return this._sampleSize;
+  get bitDepth() {
+    return this._bitDepth;
   }
 
   get streamCount() {

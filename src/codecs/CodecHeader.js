@@ -26,7 +26,7 @@ export default class CodecHeader {
     this._dataByteLength = header.dataByteLength;
     this._length = header.length;
     this._sampleRate = header.sampleRate;
-    this._sampleLength = header.sampleLength;
+    this._samplesPerFrame = header.samplesPerFrame;
   }
 
   get channels() {
@@ -45,11 +45,11 @@ export default class CodecHeader {
     return this._sampleRate;
   }
 
-  set sampleLength(length) {
-    this._sampleLength = length;
+  set samplesPerFrame(length) {
+    this._samplesPerFrame = length;
   }
 
-  get sampleLength() {
-    return this._sampleLength;
+  get samplesPerFrame() {
+    return this._samplesPerFrame;
   }
 }

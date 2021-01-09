@@ -68,18 +68,18 @@ const layers = {
     modeExtensions: layer3ModeExtensions,
     v1: {
       bitrateIndex: v1Layer3,
-      sampleLength: 1152,
+      samplesPerFrame: 1152,
     },
     v2: {
       bitrateIndex: v2Layer23,
-      sampleLength: 576,
+      samplesPerFrame: 576,
     },
   },
   0b00000100: {
     description: "Layer II",
     framePadding: 1,
     modeExtensions: layer12ModeExtensions,
-    sampleLength: 1152,
+    samplesPerFrame: 1152,
     v1: {
       bitrateIndex: v1Layer2,
     },
@@ -91,7 +91,7 @@ const layers = {
     description: "Layer I",
     framePadding: 4,
     modeExtensions: layer12ModeExtensions,
-    sampleLength: 384,
+    samplesPerFrame: 384,
     v1: {
       bitrateIndex: v1Layer1,
     },
@@ -187,7 +187,7 @@ export default class MPEGHeader extends CodecHeader {
 
     header.mpegVersion = mpegVersion.description;
     header.layer = layer.description;
-    header.sampleLength = layer.sampleLength;
+    header.samplesPerFrame = layer.samplesPerFrame;
     header.protection = protection[protectionBit];
 
     // Byte (3 of 4)
@@ -211,7 +211,7 @@ export default class MPEGHeader extends CodecHeader {
     header.isPrivate = !!privateBit;
 
     header.dataByteLength = Math.floor(
-      (125 * header.bitrate * header.sampleLength) / header.sampleRate +
+      (125 * header.bitrate * header.samplesPerFrame) / header.sampleRate +
         header.framePadding
     );
     if (!header.dataByteLength) return null;

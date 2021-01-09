@@ -24,8 +24,8 @@ import ESTag from "./isobmff-object/ESTag";
  * wrap codec frames in a MP4 container for streaming MP3 / AAC compatibility in Firefox.
  */
 export default class ISOBMFFBuilder {
-  constructor(mimeType) {
-    this._mimeType = mimeType;
+  constructor(codec) {
+    this._codec = codec;
   }
 
   static getBoxContents(boxes) {
@@ -44,14 +44,14 @@ export default class ISOBMFFBuilder {
      * 0x69 - MPEG-2 Backward Compatible Audio (MPEG-2 Layers 1, 2, and 3)
      * 0x67 - MPEG-2 AAC LC
      */
-    switch (this._mimeType) {
-      case 'audio/mp4;codecs="mp3"':
+    switch (this._codec) {
+      case "mp3":
         return this.getMp4a(header, 0x6b);
-      case 'audio/mp4;codecs="mp4a.40.2"':
+      case "mp4a.40.2":
         return this.getMp4a(header, 0x40);
-      case 'audio/mp4;codecs="opus"':
+      case "opus":
         return this.getOpus(header);
-      case 'audio/mp4;codecs="flac"':
+      case "flac":
         return this.getFlaC(header);
     }
   }
@@ -65,7 +65,7 @@ export default class ISOBMFFBuilder {
         0x00,0x01, // data reference index
         0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, // reserved
         0x00,header.channels, // channel count
-        0x00,header.sampleSize, // PCM bitrate (16bit)
+        0x00,header.bitDepth, // PCM bitrate (16bit)
         0x00,0x00, // predefined
         0x00,0x00, // reserved
         ...Box.getUint16(header.sampleRate),0x00,0x00, // sample rate 16.16 fixed-point
@@ -99,7 +99,7 @@ export default class ISOBMFFBuilder {
         0x00,0x01, // data reference index
         0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, // reserved
         0x00,header.channels, // channel count
-        0x00,header.sampleSize, // PCM bitrate (16bit)
+        0x00,header.bitDepth, // PCM bitrate (16bit)
         0x00,0x00, // predefined
         0x00,0x00, // reserved
         ...Box.getUint16(header.sampleRate),0x00,0x00, // sample rate 16.16 fixed-point
@@ -128,7 +128,7 @@ export default class ISOBMFFBuilder {
             ...Box.getUint16(header.blockSize), // minimum block size
             0x00,0x00,0x00, // maximum frame size
             0x00,0x00,0x00, // minimum frame size
-            ...Box.getUint32((header.sampleRate << 12) | (header.channels << 8) | ((header.sampleSize - 1) << 4)), // 20bits sample rate, 3bits channels, 5bits samplesize - 1
+            ...Box.getUint32((header.sampleRate << 12) | (header.channels << 8) | ((header.bitDepth - 1) << 4)), // 20bits sample rate, 3bits channels, 5bits bitDepth - 1
             0x00,0x00,0x00,0x00, // total samples
             0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00 // md5 of stream
           ],
@@ -195,7 +195,7 @@ export default class ISOBMFFBuilder {
    * @param {Header} header Codec header
    * @returns {Uint8Array} Filetype and Movie Box information for the codec
    */
-  getMovieBox(header) {
+  getInitializationSegment(header) {
     const sampleRate = Box.getUint32(header.sampleRate);
 
     const boxes = [
@@ -323,7 +323,7 @@ export default class ISOBMFFBuilder {
                 contents: [0x00,0x00,0x00,0x00, // flags
                   0x00,0x00,0x00,0x01, // track id
                   0x00,0x00,0x00,0x01, // default_sample_description_index
-                  0x00,0x00,0x00,0x00, // default_sample_duration
+                  ...Box.getUint32(header.samplesPerFrame), // default_sample_duration
                   0x00,0x00,0x00,0x00, // default_sample_size;
                   0x00,0x00,0x00,0x00], // default_sample_flags;
               }),
@@ -360,11 +360,11 @@ export default class ISOBMFFBuilder {
    * @param {Array<Frame>} frames Frames to contain in this Movie Fragment
    * @returns {Uint8Array} Movie Fragment containing the frames
    */
-  wrapFrames(frames) {
+  getMediaSegment(frames) {
     const trun = new Box("trun", {
       /* prettier-ignore */
       contents: [0x00, // version
-        0x00,0x02,0x01, // flags
+        0x00,0b0000010,0b00000001, // flags
         // * `ABCD|00000E0F`
         // * `A...|........` sample‐composition‐time‐offsets‐present
         // * `.B..|........` sample‐flags‐present
@@ -373,7 +373,7 @@ export default class ISOBMFFBuilder {
         // * `....|.....E..` first‐sample‐flags‐present
         // * `....|.......G` data-offset-present
         ...Box.getUint32(frames.length), // number of samples
-        ...frames.flatMap(({data}) => [...Box.getUint32(data.length)]), // samples lengths per frame
+        ...frames.flatMap(({data}) => [...Box.getUint32(data.length)]), // samples size per frame
       ],
     });
 
@@ -390,7 +390,7 @@ export default class ISOBMFFBuilder {
               new Box("tfhd", {
                 /* prettier-ignore */
                 contents: [0x00, // version
-                  0x02,0x00,0x08, // flags
+                  0b00000010,0x00,0b00000000, // flags
                   // * `AB|00000000|00CDE0FG`
                   // * `A.|........|........` default-base-is-moof
                   // * `.B|........|........` duration-is-empty
@@ -400,7 +400,7 @@ export default class ISOBMFFBuilder {
                   // * `..|........|......F.` sample-description-index-present
                   // * `..|........|.......G` base-data-offset-present
                   0x00,0x00,0x00,0x01, // track id
-                  ...Box.getUint32(frames[0].header.sampleLength), // default samples per entry
+                 // ...Box.getUint32(frames[0].header.samplesPerFrame), // default-sample-duration
                 ],
               }),
               new Box("tfdt", {

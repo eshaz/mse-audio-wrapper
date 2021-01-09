@@ -200,7 +200,7 @@ export default class AACHeader extends CodecHeader {
     // Byte (7 of 7)
     // * `......PP` Number of AAC frames (RDBs) in ADTS frame minus 1, for maximum compatibility always use 1 AAC frame per ADTS frame
     header.numberAACFrames = buffer[6] & 0b00000011;
-    header.sampleLength = 1024;
+    header.samplesPerFrame = 1024;
 
     header.bits = {
       profileBits,

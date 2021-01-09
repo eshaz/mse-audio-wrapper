@@ -93,7 +93,8 @@ export default class OpusFrame extends CodecFrame {
 
     const packet = OpusFrame.getPacket(data);
 
-    this._header.sampleLength =
+    this._header.packet = packet;
+    this._header.samplesPerFrame =
       (packet.config.frameSize / 1000) *
       this._header.sampleRate *
       packet.frameCount;

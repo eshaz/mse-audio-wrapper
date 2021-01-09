@@ -113,7 +113,7 @@ const channelAssignments = {
   0b11110000: "reserved",
 }
 
-const sampleSize = {
+const bitDepth = {
   0b00000000: "get from STREAMINFO metadata block",
   0b00000010: 8,
   0b00000100: 12,
@@ -196,7 +196,7 @@ export default class FlacHeader extends CodecHeader {
     header.length++;
     if (buffer[3] & 0b00000001) return null;
     const channelAssignmentBits = buffer[3] & 0b11110000;
-    const sampleSizeBits = buffer[3] & 0b00001110;
+    const bitDepthBits = buffer[3] & 0b00001110;
 
     const channelAssignment = channelAssignments[channelAssignmentBits];
     if (channelAssignment === "reserved") return null;
@@ -204,8 +204,8 @@ export default class FlacHeader extends CodecHeader {
     header.channels = channelAssignment.channels;
     header.channelMode = channelAssignment.description;
 
-    header.sampleSize = sampleSize[sampleSizeBits];
-    if (header.sampleSize === "reserved") return null;
+    header.bitDepth = bitDepth[bitDepthBits];
+    if (header.bitDepth === "reserved") return null;
 
     // Byte (5...)
     // * `IIIIIIII|...`: VBR block size ? sample number : frame number
@@ -283,9 +283,9 @@ export default class FlacHeader extends CodecHeader {
     this._blockSize = header.blockSize;
     this._crc = header.crc;
     this._frameNumber = header.frameNumber;
-    this._sampleSize = header.sampleSize;
+    this._bitDepth = header.bitDepth;
     this._sampleNumber = header.sampleNumber;
-    this._sampleLength = header.blockSize;
+    this._samplesPerFrame = header.blockSize;
   }
 
   get blockSize() {
@@ -296,7 +296,7 @@ export default class FlacHeader extends CodecHeader {
     return this._frameNumber;
   }
 
-  get sampleSize() {
-    return this._sampleSize;
+  get bitDepth() {
+    return this._bitDepth;
   }
 }
