@@ -1,3 +1,3 @@
-import ISOBMFFAudioWrapper from "./src/ISOBMFFAudioWrapper";
+import Wrapper from "./src/Wrapper";
 
-export default ISOBMFFAudioWrapper;
+export default Wrapper;

@@ -21,14 +21,15 @@ import AACParser from "./codecs/aac/AACParser";
 import OGGParser from "./codecs/ogg/OGGParser";
 
 import ISOBMFFBuilder from "./isobmff/ISOBMFFBuilder";
+import WEBMBuilder from "./webm/WEBMBuilder";
 
 /**
  * @description Generator that takes in MPEG 1/2, AAC, or Ogg FLAC and yields Fragmented MP4 (ISOBMFF)
  */
-export default class ISOBMFFAudioWrapper {
+export default class Wrapper {
   constructor(mimeType, options = {}) {
-    this.MIN_FRAMES = options.minFramesPerFragment || 4;
-    this.MIN_FRAMES_LENGTH = options.minBytesPerFragment || 1022;
+    this.MIN_FRAMES = options.minFramesPerSegment || 100; // 4
+    this.MIN_FRAMES_LENGTH = options.minBytesPerSegment || 1022;
 
     if (mimeType.match(/aac/)) {
       this._codecParser = new AACParser();
@@ -46,7 +47,7 @@ export default class ISOBMFFAudioWrapper {
   }
 
   get mimeType() {
-    return `audio/mp4;codecs="${this._codecParser.codec}"`;
+    return this._mimeType;
   }
 
   /**
@@ -61,6 +62,23 @@ export default class ISOBMFFAudioWrapper {
     buf.set(buf2, buf1.length);
 
     return buf;
+  }
+
+  getBuilder() {
+    switch (this._codecParser.codec) {
+      case "mp3":
+        this._mimeType = 'audio/mp4;codecs="mp3"';
+        return new ISOBMFFBuilder("mp3");
+      case "mp4a.40.2":
+        this._mimeType = 'audio/mp4;codecs="mp4a.40.2"';
+        return new ISOBMFFBuilder("mp4a.40.2");
+      case "flac":
+        this._mimeType = 'audio/mp4;codecs="flac"';
+        return new ISOBMFFBuilder("flac");
+      case "opus":
+        this._mimeType = `audio/webm;codecs="opus"`;
+        return new WEBMBuilder("opus");
+    }
   }
 
   /**
@@ -92,38 +110,35 @@ export default class ISOBMFFAudioWrapper {
       frames = this._parseFrames();
     }
 
-    this._ISOBMFFBuilder = new ISOBMFFBuilder(this.mimeType);
+    this._builder = this.getBuilder();
 
     // yield the movie box along with a movie fragment containing frames
-    let fMP4 = ISOBMFFAudioWrapper.appendBuffers(
-      this._ISOBMFFBuilder.getMovieBox(frames[0].header),
-      this._ISOBMFFBuilder.wrapFrames(frames)
+    let mseData = Wrapper.appendBuffers(
+      this._builder.getInitializationSegment(frames[0].header),
+      this._builder.getMediaSegment(frames)
     );
 
     // yield movie fragments containing frames
     while (true) {
-      yield* this._sendReceiveData(fMP4);
+      yield* this._sendReceiveData(mseData);
       frames = this._parseFrames();
-      fMP4 = frames ? this._ISOBMFFBuilder.wrapFrames(frames) : null;
+      mseData = frames ? this._builder.getMediaSegment(frames) : null;
     }
   }
 
   /**
    * @private
-   * @param {Uint8Array} fMP4 Fragmented MP4 to send
+   * @param {Uint8Array} mseData Fragmented MP4 to send
    * @yields {Uint8Array} Fragmented MP4
    */
-  *_sendReceiveData(fMP4) {
-    let codecData = yield fMP4;
+  *_sendReceiveData(mseData) {
+    let codecData = yield mseData;
 
     while (!codecData) {
       codecData = yield;
     }
 
-    this._codecData = ISOBMFFAudioWrapper.appendBuffers(
-      this._codecData,
-      codecData
-    );
+    this._codecData = Wrapper.appendBuffers(this._codecData, codecData);
   }
 
   /**
