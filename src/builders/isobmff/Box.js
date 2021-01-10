@@ -22,14 +22,14 @@ export default class Box extends ContainerElement {
   /**
    * @description ISO/IEC 14496-12 Part 12 ISO Base Media File Format Box
    * @param {string} name Name of the box (i.e. 'moov', 'moof', 'traf')
-   * @param {object} params Object containing contents or boxes
+   * @param {object} params Object containing contents or child boxes
    * @param {Array<Uint8>} [params.contents] Array of bytes to insert into this box
-   * @param {Array<Box>} [params.boxes] Array of boxes to insert into this box
+   * @param {Array<Box>} [params.children] Array of child boxes to insert into this box
    */
-  constructor(name, { contents = [], boxes = [] } = {}) {
-    super(name, Box.stringToByteArray(name).concat(contents), boxes);
+  constructor(name, { contents = [], children = [] } = {}) {
+    super(name, contents, children);
 
-    this.LENGTH_SIZE = 4;
+    this.MIN_SIZE = 4 + name.length;
   }
 
   /**
@@ -38,21 +38,8 @@ export default class Box extends ContainerElement {
   get contents() {
     const contents = super.contents;
 
-    return [
-      ...ContainerElement.getUint32(this.LENGTH_SIZE + contents.length),
-    ].concat(contents);
-  }
-
-  /**
-   * @description Adds a Box to this box
-   * @param {Box} box Box to add
-   */
-  addBox(box) {
-    if (box.constructor !== Box) {
-      console.error("Only an object of type Box can be appended");
-      throw new Error("Not a box");
-    }
-
-    this.addObject(box);
+    return [...ContainerElement.getUint32(this.MIN_SIZE + contents.length)]
+      .concat(ContainerElement.stringToByteArray(this._name))
+      .concat(contents);
   }
 }

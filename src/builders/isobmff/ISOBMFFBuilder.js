@@ -70,7 +70,7 @@ export default class ISOBMFFBuilder {
         0x00,0x00, // reserved
         ...Box.getUint16(header.sampleRate),0x00,0x00, // sample rate 16.16 fixed-point
       ],
-      boxes: [
+      children: [
         new Box("dOps", {
           /* prettier-ignore */
           contents: [0x00, // version
@@ -115,7 +115,7 @@ export default class ISOBMFFBuilder {
         of 65535.0 Hz should be used.
         */
       ],
-      boxes: [
+      children: [
         new Box("dfLa", {
           /* prettier-ignore */
           contents: [0x00, // version
@@ -168,10 +168,10 @@ export default class ISOBMFFBuilder {
         0x00,0x00, // Compression ID
         0x00,0x00, // Packet size
         ...Box.getUint16(header.sampleRate),0x00,0x00], // sample rate unsigned floating point
-      boxes: [
+      children: [
         new Box("esds", {
           contents: [0x00, 0x00, 0x00, 0x00],
-          boxes: [
+          children: [
             new ESTag(3, {
               contents: [
                 0x00,
@@ -206,7 +206,7 @@ export default class ISOBMFFBuilder {
           ...Box.stringToByteArray("iso6mp41")], // compatible brands
       }),
       new Box("moov", {
-        boxes: [
+        children: [
           new Box("mvhd", {
             /* prettier-ignore */
             contents: [0x00, // version
@@ -230,7 +230,7 @@ export default class ISOBMFFBuilder {
               0x00,0x00,0x00,0x02], // next track
           }),
           new Box("trak", {
-            boxes: [
+            children: [
               new Box("tkhd", {
                 /* prettier-ignore */
                 contents: [0x00, // version
@@ -252,7 +252,7 @@ export default class ISOBMFFBuilder {
                   0x00,0x00,0x00,0x00], // track height
               }),
               new Box("mdia", {
-                boxes: [
+                children: [
                   new Box("mdhd", {
                     /* prettier-ignore */
                     contents: [0x00, // version
@@ -276,16 +276,16 @@ export default class ISOBMFFBuilder {
                       0x00], // String that specifies the name of the component, terminated by a null character
                   }),
                   new Box("minf", {
-                    boxes: [
+                    children: [
                       new Box("stbl", {
-                        boxes: [
+                        children: [
                           new Box("stsd", {
                             // Sample description atom
                             /* prettier-ignore */
                             contents: [0x00, // version
                               0x00,0x00,0x00, // flags
                               0x00,0x00,0x00,0x01], // entry count
-                            boxes: [this.getCodecBox(header)],
+                            children: [this.getCodecBox(header)],
                           }),
                           new Box("stts", {
                             // Time-to-sample atom
@@ -317,7 +317,7 @@ export default class ISOBMFFBuilder {
             ],
           }),
           new Box("mvex", {
-            boxes: [
+            children: [
               new Box("trex", {
                 /* prettier-ignore */
                 contents: [0x00,0x00,0x00,0x00, // flags
@@ -379,14 +379,14 @@ export default class ISOBMFFBuilder {
 
     const boxes = [
       new Box("moof", {
-        boxes: [
+        children: [
           new Box("mfhd", {
             /* prettier-ignore */
             contents: [0x00,0x00,0x00,0x00,
               0x00,0x00,0x00,0x00], // sequence number
           }),
           new Box("traf", {
-            boxes: [
+            children: [
               new Box("tfhd", {
                 /* prettier-ignore */
                 contents: [0x00, // version

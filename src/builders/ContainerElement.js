@@ -28,6 +28,8 @@ export default class ContainerElement {
     this._name = name;
     this._contents = contents;
     this._objects = objects;
+
+    this.MIN_SIZE = 0;
   }
 
   /**
@@ -37,6 +39,28 @@ export default class ContainerElement {
    */
   static stringToByteArray(name) {
     return [...name].map((char) => char.charCodeAt(0));
+  }
+
+  /**
+   * @description Converts a JavaScript number to Uint32
+   * @param {number} number Number to convert
+   * @returns {Uint32}
+   */
+  static getFloat64(number) {
+    const bytes = new Uint8Array(8);
+    new DataView(bytes.buffer).setFloat64(0, number);
+    return bytes;
+  }
+
+  /**
+   * @description Converts a JavaScript number to Uint32
+   * @param {number} number Number to convert
+   * @returns {Uint32}
+   */
+  static getUint64(number) {
+    const bytes = new Uint8Array(8);
+    new DataView(bytes.buffer).setBigUint64(0, BigInt(number));
+    return bytes;
   }
 
   /**
@@ -84,7 +108,7 @@ export default class ContainerElement {
   get length() {
     return this._objects.reduce(
       (acc, obj) => acc + obj.length,
-      this.LENGTH_SIZE + this._contents.length
+      this._contents.length + this.MIN_SIZE
     );
   }
 
@@ -94,7 +118,6 @@ export default class ContainerElement {
    * @param {number} index Position to insert bytes
    */
   insertBytes(data, index) {
-    index = index + this.LENGTH_SIZE;
     this._contents = this._contents
       .slice(0, index)
       .concat(data)
@@ -109,7 +132,7 @@ export default class ContainerElement {
     this._contents = this._contents.concat(data);
   }
 
-  addObject(object) {
+  addChild(object) {
     this._objects.push(object);
   }
 }

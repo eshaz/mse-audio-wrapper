@@ -35,8 +35,5 @@
   "homepage": "https://github.com/eshaz/isobmff-audio#readme",
   "devDependencies": {
     "prettier": "^2.2.1"
-  },
-  "dependencies": {
-    "simple-ebml-builder": "^0.2.2"
   }
 }
