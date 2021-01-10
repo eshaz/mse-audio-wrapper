@@ -1,28 +1,29 @@
-const EBML = require("simple-ebml-builder");
+import ID from "./ebml-ids";
+import EBML from "./EBML";
 
-const EBML_HEADER = EBML.build(
-  EBML.element(EBML.ID.EBML, [
-    EBML.element(EBML.ID.EBMLVersion, EBML.number(1)),
-    EBML.element(EBML.ID.EBMLReadVersion, EBML.number(1)),
-    EBML.element(EBML.ID.EBMLMaxIDLength, EBML.number(4)),
-    EBML.element(EBML.ID.EBMLMaxSizeLength, EBML.number(8)),
-    EBML.element(EBML.ID.DocType, EBML.string("webm")),
-    EBML.element(EBML.ID.DocTypeVersion, EBML.number(4)),
-    EBML.element(EBML.ID.DocTypeReadVersion, EBML.number(2)),
-  ])
-);
+const EBML_HEADER = new EBML(ID.EBML, {
+  children: [
+    new EBML(ID.EBMLVersion, { contents: [1] }),
+    new EBML(ID.EBMLReadVersion, { contents: [1] }),
+    new EBML(ID.EBMLMaxIDLength, { contents: [4] }),
+    new EBML(ID.EBMLMaxSizeLength, { contents: [8] }),
+    new EBML(ID.DocType, { contents: EBML.stringToByteArray("webm") }),
+    new EBML(ID.DocTypeVersion, { contents: [4] }),
+    new EBML(ID.DocTypeReadVersion, { contents: [2] }),
+  ],
+}).contents;
 
-class WEBMWrapper {
+export default class WEBMWrapper {
   constructor(codec) {
     switch (codec) {
       case "opus": {
         this._codecId = "A_OPUS";
-        this._getCodecSpecificTrack = (header) => [
-          EBML.element(EBML.ID.CodecDelay, EBML.number(0x632ea0)), // OPUS codec delay
-          EBML.element(EBML.ID.SeekPreRoll, EBML.number(0x4c4b400)), // OPUS codec delay
+        this._getCodecSpecificTrack = () => [
+          new EBML(ID.CodecDelay, { contents: [0x63, 0x2e, 0xa0] }), // OPUS codec delay
+          new EBML(ID.SeekPreRoll, { contents: [0x04, 0xc4, 0xb4, 0x00] }), // OPUS codec delay
         ];
         this._getCodecPrivate = (header) =>
-          EBML.element(EBML.ID.CodecPrivate, EBML.bytes(header.bytes)); // OpusHead bytes
+          new EBML(ID.CodecPrivate, { contents: [...header.bytes] }); // OpusHead bytes
         break;
       }
       case "vorbis": {
@@ -32,41 +33,54 @@ class WEBMWrapper {
       }
     }
 
-    this._timestamp = 0x18621d;
+    this._timestamp = 0;
   }
 
   getInitializationSegment(header) {
-    const segment = EBML.build(
-      EBML.unknownSizeElement(EBML.ID.Segment, [
-        EBML.element(EBML.ID.Info, [
-          EBML.element(EBML.ID.TimecodeScale, EBML.number(1000000)), // timescale
-          EBML.element(EBML.ID.Title, EBML.string("WAUG EDM Fest Spring 2015")),
-          EBML.element(EBML.ID.MuxingApp, EBML.string("Lavf58.29.100")),
-          EBML.element(EBML.ID.WritingApp, EBML.string("Lavf58.29.100")),
-          // prettier-ignore
-          EBML.bytes([0xEC, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00]), //void
-        ]),
-        EBML.element(
-          EBML.ID.Tracks,
-          EBML.element(EBML.ID.TrackEntry, [
-            EBML.element(EBML.ID.TrackNumber, EBML.number(1)),
-            EBML.element(EBML.ID.TrackUID, EBML.number(1)),
-            EBML.element(EBML.ID.FlagLacing, EBML.bytes([0x00])),
-            EBML.element(EBML.ID.Language, EBML.string("und")),
-            EBML.element(EBML.ID.CodecID, EBML.string(this._codecId)),
-            ...this._getCodecSpecificTrack(header),
-            EBML.element(EBML.ID.TrackType, EBML.number(2)), // audio
-            EBML.element(EBML.ID.Audio, [
-              EBML.element(EBML.ID.Channels, EBML.number(header.channels)),
-              // prettier-ignore
-              EBML.bytes([0xb5,0x88,0x40,0xe7,0x70,0x00,0x00,0x00,0x00,0x00]), // SamplingFrequency
-              EBML.element(EBML.ID.BitDepth, EBML.number(header.bitDepth)),
-            ]),
-            this._getCodecPrivate(header),
-          ])
-        ),
-      ])
-    );
+    const segment = new EBML(ID.Segment, {
+      isUnknownLength: true,
+      children: [
+        new EBML(ID.Info, {
+          children: [
+            new EBML(ID.TimecodeScale, {
+              contents: [0x0f, 0x42, 0x40],
+            }),
+            new EBML(ID.MuxingApp, {
+              contents: EBML.stringToByteArray("isobmff-audio"),
+            }),
+            new EBML(ID.WritingApp, {
+              contents: EBML.stringToByteArray("isobmff-audio"),
+            }),
+          ],
+        }),
+        new EBML(ID.Tracks, {
+          children: [
+            new EBML(ID.TrackEntry, {
+              children: [
+                new EBML(ID.TrackNumber, { contents: [1] }),
+                new EBML(ID.TrackUID, { contents: [1] }),
+                new EBML(ID.FlagLacing, { contents: [0] }),
+                new EBML(ID.CodecID, {
+                  contents: EBML.stringToByteArray(this._codecId),
+                }),
+                ...this._getCodecSpecificTrack(header),
+                new EBML(ID.TrackType, { contents: [2] }), // audio
+                new EBML(ID.Audio, {
+                  children: [
+                    new EBML(ID.Channels, { contents: [header.channels] }),
+                    new EBML(ID.SamplingFrequency, {
+                      contents: [...EBML.getFloat64(header.sampleRate)],
+                    }),
+                    new EBML(ID.BitDepth, { contents: [header.bitDepth] }),
+                  ],
+                }),
+                this._getCodecPrivate(header),
+              ],
+            }),
+          ],
+        }),
+      ],
+    }).contents;
 
     const buffer = new Uint8Array(EBML_HEADER.length + segment.length);
     buffer.set(EBML_HEADER);
@@ -75,48 +89,35 @@ class WEBMWrapper {
     return buffer;
   }
 
-  static concatBuffers(buffers) {
-    const length = buffers.reduce((acc, val) => acc + val.length, 0);
-    const buf = new Uint8Array(length);
-    let offset = 0;
-
-    for (const buffer of buffers) {
-      buf.set(buffer, offset);
-      offset += buffer.length;
-    }
-
-    return buf;
-  }
-
   getMediaSegment(frames) {
     let blockTimestamp = 0;
 
-    const cluster = EBML.build(
-      EBML.element(EBML.ID.Cluster, [
-        EBML.element(EBML.ID.Timecode, EBML.number(this._timestamp)), // Absolute timecode of the cluster
+    const cluster = new EBML(ID.Cluster, {
+      children: [
+        new EBML(ID.Timecode, {
+          contents: [...EBML.getVint(this._timestamp)], // Absolute timecode of the cluster
+        }),
         ...frames.map(({ data, header }) => {
-          const block = EBML.element(EBML.ID.SimpleBlock, [
-            EBML.bytes([0x81]), // track number
-            EBML.bytes(WEBMWrapper.getInt16(blockTimestamp)), // timestamp relative to cluster Int16
-            EBML.bytes([0b10000000]), // No lacing
-            EBML.bytes(data), // ogg page contents
-          ]);
+          const block = new EBML(ID.SimpleBlock, {
+            contents: [
+              0x81, // track number
+              ...EBML.getInt16(blockTimestamp), // timestamp relative to cluster Int16
+              0b10000000, // No lacing
+              ...data, // ogg page contents
+            ],
+          });
           blockTimestamp += header.packet.config.frameSize;
 
           return block;
         }),
-      ])
-    );
+      ],
+    }).contents;
 
     this._timestamp += blockTimestamp;
-    return cluster;
-  }
 
-  static getInt16(number) {
-    const bytes = new Uint8Array(2);
-    new DataView(bytes.buffer).setInt16(0, number);
-    return bytes;
+    const data = new Uint8Array(cluster.length);
+    data.set(cluster);
+
+    return data;
   }
 }
-
-module.exports = WEBMWrapper;
