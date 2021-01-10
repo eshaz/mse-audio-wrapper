@@ -20,27 +20,20 @@ import MPEGParser from "./codecs/mpeg/MPEGParser";
 import AACParser from "./codecs/aac/AACParser";
 import OGGParser from "./codecs/ogg/OGGParser";
 
-import ISOBMFFBuilder from "./isobmff/ISOBMFFBuilder";
-import WEBMBuilder from "./webm/WEBMBuilder";
+import ISOBMFFBuilder from "./builders/isobmff/ISOBMFFBuilder";
+import WEBMBuilder from "./builders/webm/WEBMBuilder";
 
 /**
  * @description Generator that takes in MPEG 1/2, AAC, or Ogg FLAC and yields Fragmented MP4 (ISOBMFF)
  */
 export default class Wrapper {
   constructor(mimeType, options = {}) {
-    this.MIN_FRAMES = options.minFramesPerSegment || 100; // 4
+    this.MIN_FRAMES = options.minFramesPerSegment || 4;
     this.MIN_FRAMES_LENGTH = options.minBytesPerSegment || 1022;
-
-    if (mimeType.match(/aac/)) {
-      this._codecParser = new AACParser();
-    } else if (mimeType.match(/mpeg/)) {
-      this._codecParser = new MPEGParser();
-    } else if (mimeType.match(/ogg/)) {
-      this._codecParser = new OGGParser();
-    }
 
     this._frames = [];
     this._codecData = new Uint8Array(0);
+    this._codecParser = this.getCodecParser(mimeType);
 
     this._generator = this._generator();
     this._generator.next();
@@ -64,6 +57,16 @@ export default class Wrapper {
     return buf;
   }
 
+  getCodecParser(mimeType) {
+    if (mimeType.match(/aac/)) {
+      return new AACParser();
+    } else if (mimeType.match(/mpeg/)) {
+      return new MPEGParser();
+    } else if (mimeType.match(/ogg/)) {
+      return new OGGParser();
+    }
+  }
+
   getBuilder() {
     switch (this._codecParser.codec) {
       case "mp3":
@@ -76,7 +79,9 @@ export default class Wrapper {
         this._mimeType = 'audio/mp4;codecs="flac"';
         return new ISOBMFFBuilder("flac");
       case "opus":
-        this._mimeType = `audio/webm;codecs="opus"`;
+        //this._mimeType = 'audio/mp4;codecs="opus"';
+        this._mimeType = 'audio/webm;codecs="opus"';
+        //return new ISOBMFFBuilder("opus");
         return new WEBMBuilder("opus");
     }
   }

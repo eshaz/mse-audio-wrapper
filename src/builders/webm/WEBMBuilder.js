@@ -18,10 +18,11 @@ class WEBMWrapper {
       case "opus": {
         this._codecId = "A_OPUS";
         this._getCodecSpecificTrack = (header) => [
-          EBML.element(EBML.ID.CodecDelay, EBML.number(0x6328a0)), // OPUS codec delay
+          EBML.element(EBML.ID.CodecDelay, EBML.number(0x632ea0)), // OPUS codec delay
           EBML.element(EBML.ID.SeekPreRoll, EBML.number(0x4c4b400)), // OPUS codec delay
-          EBML.element(EBML.ID.CodecPrivate, EBML.bytes(header.bytes)), // OpusHead bytes
         ];
+        this._getCodecPrivate = (header) =>
+          EBML.element(EBML.ID.CodecPrivate, EBML.bytes(header.bytes)); // OpusHead bytes
         break;
       }
       case "vorbis": {
@@ -31,7 +32,7 @@ class WEBMWrapper {
       }
     }
 
-    this._timestamp = 0;
+    this._timestamp = 0x18621d;
   }
 
   getInitializationSegment(header) {
@@ -39,8 +40,11 @@ class WEBMWrapper {
       EBML.unknownSizeElement(EBML.ID.Segment, [
         EBML.element(EBML.ID.Info, [
           EBML.element(EBML.ID.TimecodeScale, EBML.number(1000000)), // timescale
-          EBML.element(EBML.ID.MuxingApp, EBML.string("icecast-metadata-js")),
-          EBML.element(EBML.ID.WritingApp, EBML.string("icecast-metadata-js")),
+          EBML.element(EBML.ID.Title, EBML.string("WAUG EDM Fest Spring 2015")),
+          EBML.element(EBML.ID.MuxingApp, EBML.string("Lavf58.29.100")),
+          EBML.element(EBML.ID.WritingApp, EBML.string("Lavf58.29.100")),
+          // prettier-ignore
+          EBML.bytes([0xEC, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00]), //void
         ]),
         EBML.element(
           EBML.ID.Tracks,
@@ -48,15 +52,17 @@ class WEBMWrapper {
             EBML.element(EBML.ID.TrackNumber, EBML.number(1)),
             EBML.element(EBML.ID.TrackUID, EBML.number(1)),
             EBML.element(EBML.ID.FlagLacing, EBML.bytes([0x00])),
-            EBML.element(EBML.ID.TrackType, EBML.number(2)), // audio
+            EBML.element(EBML.ID.Language, EBML.string("und")),
             EBML.element(EBML.ID.CodecID, EBML.string(this._codecId)),
+            ...this._getCodecSpecificTrack(header),
+            EBML.element(EBML.ID.TrackType, EBML.number(2)), // audio
             EBML.element(EBML.ID.Audio, [
+              EBML.element(EBML.ID.Channels, EBML.number(header.channels)),
               // prettier-ignore
               EBML.bytes([0xb5,0x88,0x40,0xe7,0x70,0x00,0x00,0x00,0x00,0x00]), // SamplingFrequency
-              EBML.element(EBML.ID.Channels, EBML.number(header.channels)),
               EBML.element(EBML.ID.BitDepth, EBML.number(header.bitDepth)),
             ]),
-            ...this._getCodecSpecificTrack(header),
+            this._getCodecPrivate(header),
           ])
         ),
       ])

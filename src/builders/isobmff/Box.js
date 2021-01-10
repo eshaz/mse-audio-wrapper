@@ -15,9 +15,10 @@
     You should have received a copy of the GNU Lesser General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 */
-import ISOBMFFObject from "./ISOBMFFObject";
 
-export default class Box extends ISOBMFFObject {
+import ContainerElement from "../ContainerElement";
+
+export default class Box extends ContainerElement {
   /**
    * @description ISO/IEC 14496-12 Part 12 ISO Base Media File Format Box
    * @param {string} name Name of the box (i.e. 'moov', 'moof', 'traf')
@@ -32,22 +33,13 @@ export default class Box extends ISOBMFFObject {
   }
 
   /**
-   * @description Converts a string to a byte array
-   * @param {string} name String to convert
-   * @returns {Uint8Array}
-   */
-  static stringToByteArray(name) {
-    return [...name].map((char) => char.charCodeAt(0));
-  }
-
-  /**
    * @returns {Array<Uint8>} Contents of this box
    */
   get contents() {
     const contents = super.contents;
 
     return [
-      ...ISOBMFFObject.getUint32(this.LENGTH_SIZE + contents.length),
+      ...ContainerElement.getUint32(this.LENGTH_SIZE + contents.length),
     ].concat(contents);
   }
 

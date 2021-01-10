@@ -16,8 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 */
 
-import Box from "./isobmff-object/Box";
-import ESTag from "./isobmff-object/ESTag";
+import Box from "./Box";
+import ESTag from "./ESTag";
 
 /**
  * @description Fragmented ISO Base Media File Format Builder is a class to

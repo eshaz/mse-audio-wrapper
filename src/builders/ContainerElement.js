@@ -16,18 +16,27 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 */
 
-export default class ISOBMFFObject {
+export default class ContainerElement {
   /**
    * @abstract
    * @description ISO Base Media File Format Object structure Abstract Class
    * @param {any} name Name of the object
    * @param {Array<Uint8>} [contents] Array of bytes to insert into this box
-   * @param {Array<ISOBMFFObject>} [objects] Array of objects to insert into this object
+   * @param {Array<ContainerElement>} [objects] Array of objects to insert into this object
    */
   constructor(name, contents, objects) {
     this._name = name;
     this._contents = contents;
     this._objects = objects;
+  }
+
+  /**
+   * @description Converts a string to a byte array
+   * @param {string} name String to convert
+   * @returns {Uint8Array}
+   */
+  static stringToByteArray(name) {
+    return [...name].map((char) => char.charCodeAt(0));
   }
 
   /**

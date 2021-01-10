@@ -16,16 +16,16 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 */
 
-import ISOBMFFObject from "./ISOBMFFObject";
+import ContainerElement from "../ContainerElement";
 
-export default class ESTag extends ISOBMFFObject {
+export default class ESTag extends ContainerElement {
   constructor(tagNumber, { contents = [], tags = [] } = {}) {
     super(tagNumber, contents, tags);
     this.LENGTH_SIZE = 1;
   }
 
   static getLength(length) {
-    let bytes = ISOBMFFObject.getUint32(length);
+    let bytes = ContainerElement.getUint32(length);
 
     bytes.every((byte, i, array) => {
       if (byte === 0x00) {
