@@ -119,6 +119,9 @@ export default class MSEAudioWrapper {
       case "flac":
         this._mimeType = 'audio/mp4;codecs="flac"';
         return new ISOBMFFContainer("flac");
+      case "vorbis":
+        this._mimeType = 'audio/webm;codecs="vorbis"';
+        return new WEBMContainer("vorbis");
       case "opus":
         if (this.PREFERRED_CONTAINER === "webm") {
           this._mimeType = 'audio/webm;codecs="opus"';

@@ -67,7 +67,7 @@ export default class EBML extends ContainerElement {
     } else if (number < 2 ** 56 - 1) {
       buffer = ContainerElement.getUint64(number);
       buffer[0] |= 0b00000001;
-    } else if (typeof number !== "number") {
+    } else if (typeof number !== "number" || isNaN(number)) {
       throw new Error(
         `mse-audio-wrapper: EBML Variable integer must be a number, instead received ${number}`
       );

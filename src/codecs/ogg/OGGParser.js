@@ -18,8 +18,10 @@
 
 import CodecParser from "../CodecParser";
 import OGGPage from "./OGGPage";
+
 import FlacParser from "../flac/FlacParser";
 import OpusParser from "../opus/OpusParser";
+import VorbisParser from "../vorbis/VorbisParser";
 
 export default class OGGParser extends CodecParser {
   constructor() {
@@ -45,7 +47,8 @@ export default class OGGParser extends CodecParser {
       this._codec = "opus";
       this._parser = new OpusParser();
     } else if (this._matchBytes(/\x01vorbis/, data.subarray(0, 7))) {
-      throw new Error("Vorbis is currently not supported by mse-audio-wrapper");
+      this._codec = "vorbis";
+      this._parser = new VorbisParser();
     }
   }
 

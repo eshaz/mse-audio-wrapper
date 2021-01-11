@@ -120,10 +120,11 @@ export default class OGGPageHeader {
 
     header.dataByteLength = 0;
     header.pageSegmentTable = [];
+    header.pageSegmentBytes = buffer.subarray(27, header.length);
 
     let segmentLength = 0;
 
-    for (const segmentByte of buffer.subarray(27, header.length)) {
+    for (const segmentByte of header.pageSegmentBytes) {
       header.dataByteLength += segmentByte;
       segmentLength += segmentByte;
 
@@ -147,6 +148,7 @@ export default class OGGPageHeader {
     this._isFirstPage = header.isFirstPage;
     this._isLastPage = header.isLastPage;
     this._length = header.length;
+    this._pageSegmentBytes = header.pageSegmentBytes;
     this._pageSegmentTable = header.pageSegmentTable;
     this._pageSequenceNumber = header.pageSequenceNumber;
     this._pageChecksum = header.pageChecksum;
@@ -164,6 +166,11 @@ export default class OGGPageHeader {
   get pageSegmentTable() {
     return this._pageSegmentTable;
   }
+
+  get pageSegmentBytes() {
+    return this._pageSegmentBytes;
+  }
+
   get pageSequenceNumber() {
     return this._pageSequenceNumber;
   }
