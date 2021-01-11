@@ -1,4 +1,108 @@
-const ID = {
+/* Copyright 2020-2021 Ethan Halsall
+    
+    This file is part of mse-audio-wrapper.
+    
+    mse-audio-wrapper is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    mse-audio-wrapper is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>
+*/
+
+import ContainerElement from "../ContainerElement";
+
+export default class EBML extends ContainerElement {
+  /**
+   * @description ISO/IEC 14496-12 Part 12 ISO Base Media File Format Box
+   * @param {name} name ID of the EBML element
+   * @param {object} params Object containing contents or children
+   * @param {boolean} [isUnknownLength] Set to true to use the unknown length constant for EBML
+   * @param {Array<Uint8>} [params.contents] Array of bytes to insert into this box
+   * @param {Array<Box>} [params.children] Array of children to insert into this box
+   */
+  constructor(
+    name,
+    { contents = [], children = [], isUnknownLength = false } = {}
+  ) {
+    super(name, contents, children);
+
+    this._isUnknownLength = isUnknownLength;
+  }
+
+  /**
+   * @description Converts a JavaScript number into a variable length EBML integer
+   * @param {number} number Number to convert
+   */
+  static getUintVariable(number) {
+    let buffer;
+
+    if (number < 2 ** 7 - 1) {
+      buffer = [0b10000000 | number];
+    }
+    if (number < 2 ** 14 - 1) {
+      buffer = ContainerElement.getUint16(number);
+      buffer[0] |= 0b01000000;
+    } else if (number < 2 ** 21 - 1) {
+      buffer = ContainerElement.getUint32(number).subarray(1);
+      buffer[0] |= 0b00100000;
+    } else if (number < 2 ** 28 - 1) {
+      buffer = ContainerElement.getUint32(number);
+      buffer[0] |= 0b00010000;
+    } else if (number < 2 ** 35 - 1) {
+      buffer = ContainerElement.getUint64(number).subarray(3);
+      buffer[0] |= 0b00001000;
+    } else if (number < 2 ** 42 - 1) {
+      buffer = ContainerElement.getUint64(number).subarray(2);
+      buffer[0] |= 0b00000100;
+    } else if (number < 2 ** 49 - 1) {
+      buffer = ContainerElement.getUint64(number).subarray(1);
+      buffer[0] |= 0b00000010;
+    } else if (number < 2 ** 56 - 1) {
+      buffer = ContainerElement.getUint64(number);
+      buffer[0] |= 0b00000001;
+    } else if (typeof number !== "number") {
+      throw new Error(
+        `mse-audio-wrapper: EBML Variable integer must be a number, instead received ${number}`
+      );
+    }
+
+    return buffer;
+  }
+
+  /**
+   * @returns {number} Total length of this object and all contents
+   */
+  get length() {
+    const length = super.length;
+
+    return length + EBML.getUintVariable(length).length;
+  }
+
+  /**
+   * @returns {Array<Uint8>} Contents of this EBML tag
+   */
+  get contents() {
+    const contents = super.contents;
+
+    // prettier-ignore
+    return this._name
+      .concat(
+        this._isUnknownLength
+          ? [0x01,0xff,0xff,0xff,0xff,0xff,0xff,0xff] // unknown length constant
+          : [...EBML.getUintVariable(contents.length)]
+      )
+      .concat(contents);
+  }
+}
+
+export const id = {
   AlphaMode: [0x53, 0xc0],
   AspectRatioType: [0x54, 0xb3],
   AttachedFile: [0x61, 0xa7],
@@ -212,5 +316,3 @@ const ID = {
   WhitePointChromaticityY: [0x55, 0xd8],
   WritingApp: [0x57, 0x41],
 };
-
-export default ID;

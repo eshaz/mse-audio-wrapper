@@ -1,13 +1,13 @@
-/* Copyright 2020 Ethan Halsall
+/* Copyright 2020-2021 Ethan Halsall
     
-    This file is part of isobmff-audio.
+    This file is part of mse-audio-wrapper.
     
-    isobmff-audio is free software: you can redistribute it and/or modify
+    mse-audio-wrapper is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    isobmff-audio is distributed in the hope that it will be useful,
+    mse-audio-wrapper is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU Lesser General Public License for more details.
@@ -45,7 +45,7 @@ export default class OGGParser extends CodecParser {
       this._codec = "opus";
       this._parser = new OpusParser();
     } else if (this._matchBytes(/\x01vorbis/, data.subarray(0, 7))) {
-      throw new Error("Vorbis is currently not supported by isobmff-audio");
+      throw new Error("Vorbis is currently not supported by mse-audio-wrapper");
     }
   }
 

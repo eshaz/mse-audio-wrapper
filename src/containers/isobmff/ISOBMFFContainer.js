@@ -1,13 +1,13 @@
-/* Copyright 2020 Ethan Halsall
+/* Copyright 2020-2021 Ethan Halsall
     
-    This file is part of isobmff-audio.
+    This file is part of mse-audio-wrapper.
     
-    isobmff-audio is free software: you can redistribute it and/or modify
+    mse-audio-wrapper is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    isobmff-audio is distributed in the hope that it will be useful,
+    mse-audio-wrapper is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU Lesser General Public License for more details.
@@ -23,7 +23,7 @@ import ESTag from "./ESTag";
  * @description Fragmented ISO Base Media File Format Builder is a class to
  * wrap codec frames in a MP4 container for streaming MP3 / AAC compatibility in Firefox.
  */
-export default class ISOBMFFBuilder {
+export default class ISOBMFFContainer {
   constructor(codec) {
     this._codec = codec;
   }
@@ -333,7 +333,7 @@ export default class ISOBMFFBuilder {
       }),
     ];
 
-    return ISOBMFFBuilder.getBoxContents(boxes);
+    return ISOBMFFContainer.getBoxContents(boxes);
   }
 
   static getMediaDataBox(frames) {
@@ -418,8 +418,8 @@ export default class ISOBMFFBuilder {
 
     trun.insertBytes([...Box.getUint32(boxes[0].length + 12)], 8); // data offset (moof length + mdat length + mdat)
 
-    const moof = ISOBMFFBuilder.getBoxContents(boxes);
-    const mdat = ISOBMFFBuilder.getMediaDataBox(frames);
+    const moof = ISOBMFFContainer.getBoxContents(boxes);
+    const mdat = ISOBMFFContainer.getMediaDataBox(frames);
 
     const fragment = new Uint8Array(moof.length + mdat.length);
     fragment.set(moof);

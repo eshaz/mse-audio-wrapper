@@ -1,112 +1,125 @@
-# ISOBMFF Audio
+# MSE (Media Source Extensions) Audio Wrapper
 
-`isobmff-audio` is a library that wraps audio into the ISO Base Media File Format (MPEG-4 Part 12) (commonly referred to as Fragmented MP4 or fmp4).
+`mse-audio-wrapper` is a library to enable Media Source Extensions API playback for unsupported audio containers and raw codecs. MSE Audio Wrapper uses both WEBM and the ISO Base Media File Format (MPEG-4 Part 12) (commonly referred to as Fragmented MP4 or fmp4).
 
- * [**API**](#isobmffaudio)
-   * [**ISOBMFFAudioWrapper**](#ISOBMFFAudioWrapper)
-     * Takes in audio (MP3, AAC, OGG Flac, or OGG Opus) and outputs fragmented ISOBMFF
+ * [**API**](#mse-audio-wrapper)
+   * [**MSEAudioWrapper**](#MSEAudioWrapper)
+     * Takes in audio (MP3, AAC, OGG Flac, or OGG Opus)
+     * Outputs
+       * ISOBMFF (fMP4) (MP3, AAC, Flac, or Opus)
+       * WEBM (Opus)
  * [**Demo**](#demo)
-   * React application that demonstrates ISOBMFFAudioWrapper being used to support the MediaSource Extensions API with `icecast-metadata-js`
+   * React application that demonstrates MSEAudioWrapper being used to support `icecast-metadata-js`
    * Checkout the demo [here](https://eshaz.github.io/icecast-metadata-js/)!
 
 ---
 
 # API
 
-## `ISOBMFFAudioWrapper`
+## `MSEAudioWrapper`
 
-https://github.com/eshaz/isobmff-audio/tree/master/src/ISOBMFFAudioWrapper.js
+https://github.com/eshaz/mse-audio-wrapper/tree/master/src/MSEAudioWrapper.js
 
-A class that takes in audio (MP3, AAC, OGG Flac, or OGG Opus) and outputs fragmented ISOBMFF.
+A class that takes in audio (MP3, AAC, OGG Flac, or OGG Opus) and outputs fragmented ISOBMFF or WEBM.
 
 ### Usage
 
-1. To use `ISOBMFFAudioWrapper`, create a new instance of the class by passing in the mimetype of your audio data.
+1. To use `MSEAudioWrapper`, create a new instance of the class by passing in the mimetype of your audio data.
 
-    *Note: For directly converting from an HTTP response, use the mimetype contained in the `Content-Type` header*
+    *Note: For directly converting from a HTTP response, use the mimetype contained in the `Content-Type` header*
     
-    <pre>
-    import ISOBMFFAudioWrapper from "isobmff-audio";
+    ```
+    import MSEAudioWrapper from "mse-audio-wrapper";
     
     const headers = myHTTPResponse.headers;
     const mimeType = headers.get('Content-Type');
     
-    const fmp4Wrapper = new ISOBMFFAudioWrapper(mimeType);
-    </pre>
+    const audioWrapper = new MSEAudioWrapper(mimeType);
+    ```
     
-1. To wrap audio into ISOBMFF, pass in the raw audio data into the instance's `.iterator()`. Iterate over this iterator using a `for ...of` or `for await...of` loop. Repeat this step until all audio data has been read.
+1. To begin processing audio data, pass in the audio data into the instance's `.iterator()`. This method returns an iterator that can be consumed using a `for ...of` or `for await...of` loop. Repeat this step until all audio data has been read.
 
-    <pre>
+    ```
     const audioData = response.body;
     
-    for (const fMP4 of fmp4Wrapper.iterator(audioData)) {
+    for (const wrappedAudio of audioWrapper.iterator(audioData)) {
       // Do something with the wrapped data
     }
-    </pre>
+    ```
 
-  * ISOBMFFAudioWrapper will store any partial data until a full audio frame can be appended as ISOBMFF.
+  * MSEAudioWrapper will store any partial data until at least one full audio frame can be processed.
 
     *Note: Any data that does not conform to the instance's mimetype will be discarded.*
 
-  * Once enough data has been received to form at least 4 complete audio frames, and 1022 bytes of audio data, the initial segment will be returned along with a movie fragment containing the audio data. These values are user configurable using the `options` parameter in the constructor.
+  * Once enough data has been received to form at least 4 complete audio frames, and 1022 bytes of audio data, the initial segment will be returned along with a media segment containing the audio data. These values are user configurable using the `options` parameter in the constructor.
 
     * 1st Iteration
-    
-      <pre>
+
+      ```
       "initial segment"
       --ftyp [file type]
       --moov [movie]
-      "fragment"
+      "media segment"
       --moof [movie fragment]
       --mdat [audio data]
-      </pre>
+      ```
 
-  * Subsequent iterations will only return movie fragments.
+  * Subsequent iterations will only return media segments.
     * *n*th Iteration
 
-      <pre>
-      "fragment"
+      ```
+      "media segment"
       --moof [movie fragment]
       --mdat [audio data]
-      </pre>
+      ```
 
 ### Methods
 
-`const wrapper = new ISOBMFFAudioWrapper("audio/mpeg", {minFramesPerFragment: 2, minBytesPerFragment: 576});`
+`const wrapper = new MSEAudioWrapper("audio/mpeg", {minFramesPerSegment: 2, minBytesPerSegment: 576, preferredContainer: "webm"});`
 * `constructor`
-  * Creates a new instance of ISOMBFFAudioWrapper that can be used to wrap audio for a given mimetype.
+  * Creates a new instance of MSEAudioWrapper that can be used to wrap audio for a given mimetype.
   * Parameters:
-    * `mimetype` *required* Format of the audio to wrap into ISOBMFF
+    * `mimetype` *required* Incoming audio codec or container
       * MP3 - `audio/mpeg`
       * AAC - `audio/aac`, `audio/aacp`
-      * FLAC - `audio/flac`
       * Ogg FLAC - `application/ogg`, `audio/ogg`
       * Ogg Opus - `application/ogg`, `audio/ogg`
     * `options` *optional*
-      * `options.minFramesPerFragment` *optional* Minimum audio frames to store before returning a fragment
+      * `options.minFramesPerSegment` *optional* Minimum audio frames to store before returning a segment
         * Accepts an integer greater than 0
         * Defaults to `4`
-      * `options.minBytesPerFragment` *optional* Minimum audio bytes to store before returning a fragment
+      * `options.minBytesPerSegment` *optional* Minimum audio bytes to store before returning a segment
         * Accepts an integer greater than 0
         * Defaults to `1022`
+      * `options.preferredContainer` *optional* Preferred output container when there are multiple supported containers
+        * Accepts `"webm"`, `"fmp4"`
+        * Defaults to `"fmp4"`
 * `wrapper.iterator(data)`
-  * Returns an Iterator that can be used in a `for ...of` loop to return ISOBMFF
+  * Returns an Iterator that can be used in a `for ...of` loop to return wrapped audio
   * Parameters:
     * `data` Uint8Array of audio data to wrap
+* `wrapper.inputMimeType`
+  * Getter that returns the mime-type of the incoming audio data
+  * Examples:
+    * MP3 - `audio/mpeg`
+    * AAC - `audio/aac`
+    * Ogg FLAC - `application/ogg`, `audio/ogg`
+    * Ogg Opus - `application/ogg`, `audio/ogg`
 * `wrapper.mimeType`
-  * Getter that returns the mimeType of the wrapped audio data
-    * For OGG, the codec is embedded in the first OGG page. This returns `audio/mp4;codecs="flac,opus` before that first page is read.
+  * Getter that returns the mime-type of the wrapped audio data
+    * **Note: For OGG streams, the mime-type will only be available after the first media segment is returned.**
   * Examples:
     * MP3 - `audio/mp4;codecs="mp3"`
     * AAC - `audio/mp4;codecs="mp4a.40.2"`
     * FLAC - `audio/mp4;codecs="flac"`
-    * OPUS - `audio/mp4;codecs="opus"`
+    * OPUS (ISOBMFF) - `audio/mp4;codecs="opus"`
+    * OPUS (WEBM) - `audio/webm;codecs="opus"`
 ---
 
 
 # Demo
 
-`isobmff-audio` is used in the demo for `icecast-metadata-js` to allow for Icecast metadata support in Firefox (mp3, aac, flac) and Chrome (flac) by wrapping the streaming audio in ISOBMFF so it can be used with the [MediaSource API](https://developer.mozilla.org/en-US/docs/Web/API/MediaSource).
+`mse-audio-wrapper` is used in the demo for `icecast-metadata-js` to allow for Icecast metadata support in Firefox (mp3, aac, flac) and Chrome (flac) by wrapping the streaming audio in ISOBMFF so it can be used with the [MediaSource API](https://developer.mozilla.org/en-US/docs/Web/API/MediaSource).
 
 https://github.com/eshaz/icecast-metadata-js/tree/master/src/demo
 

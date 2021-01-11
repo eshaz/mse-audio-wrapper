@@ -1,3 +1,3 @@
-import Wrapper from "./src/Wrapper";
+import MSEAudioWrapper from "./src/MSEAudioWrapper";
 
-export default Wrapper;
+export default MSEAudioWrapper;
