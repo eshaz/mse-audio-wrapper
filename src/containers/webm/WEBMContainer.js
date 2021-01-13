@@ -103,20 +103,20 @@ export default class WEBMContainer {
         new EBML(id.Timecode, {
           contents: [...EBML.getUintVariable(this._timestamp)], // Absolute timecode of the cluster
         }),
-        ...frames.map(
-          ({ data, header }) =>
-            new EBML(id.SimpleBlock, {
-              contents: [
-                0x81, // track number
-                ...EBML.getInt16(
-                  (blockTimestamp +=
-                    (header.samplesPerFrame / header.sampleRate) * 1000)
-                ), // timestamp relative to cluster Int16
-                0x80, // No lacing
-                ...data, // ogg page contents
-              ],
-            })
-        ),
+        ...frames.map(({ data, header }) => {
+          const block = new EBML(id.SimpleBlock, {
+            contents: [
+              0x81, // track number
+              ...EBML.getInt16(blockTimestamp), // timestamp relative to cluster Int16
+              0x80, // No lacing
+              ...data, // ogg page contents
+            ],
+          });
+
+          blockTimestamp += (header.samplesPerFrame / header.sampleRate) * 1000;
+
+          return block;
+        }),
       ],
     }).contents;
 
