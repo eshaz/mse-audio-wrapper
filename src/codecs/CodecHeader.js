@@ -52,4 +52,12 @@ export default class CodecHeader {
   get samplesPerFrame() {
     return this._samplesPerFrame;
   }
+
+  set duration(duration) {
+    this._duration = duration;
+  }
+
+  get duration() {
+    return this._duration;
+  }
 }

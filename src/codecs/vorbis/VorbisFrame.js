@@ -19,9 +19,9 @@
 import CodecFrame from "../CodecFrame";
 
 export default class VorbisFrame extends CodecFrame {
-  constructor(data, header, samples) {
+  constructor(data, header) {
     super(header, data, data.length);
 
-    this._header.samplesPerFrame = samples;
+    this._header.duration = (data.length * 8) / this._header.bitrateNominal;
   }
 }

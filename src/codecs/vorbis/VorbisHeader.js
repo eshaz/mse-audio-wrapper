@@ -132,11 +132,7 @@ export default class VorbisHeader extends CodecHeader {
     return this._codecPrivate;
   }
 
-  get blocksize0() {
-    return this._blocksize0;
-  }
-
-  get blocksize1() {
-    return this._blocksize1;
+  get bitrateNominal() {
+    return this._bitrateNominal;
   }
 }

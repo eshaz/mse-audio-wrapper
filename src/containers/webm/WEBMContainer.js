@@ -113,7 +113,7 @@ export default class WEBMContainer {
             ],
           });
 
-          blockTimestamp += (header.samplesPerFrame / header.sampleRate) * 1000;
+          blockTimestamp += header.duration * 1000;
 
           return block;
         }),
