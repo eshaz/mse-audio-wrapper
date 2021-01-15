@@ -73,8 +73,9 @@ const channelMappingFamilies = {
 
 export default class OpusHeader extends CodecHeader {
   static getHeader(data) {
+    const header = {};
     // Must be at least 19 bytes.
-    if (data.length < 19) return null;
+    if (data.length < 19) return new OpusHeader(header, false);
 
     // Bytes (1-8 of 19): OpusHead - Magic Signature
     if (
@@ -98,7 +99,6 @@ export default class OpusHeader extends CodecHeader {
       Uint8Array.from([...data.subarray(0, 19)]).buffer
     );
 
-    const header = {};
     header.length = 19;
 
     // Byte (10 of 19)
@@ -130,7 +130,7 @@ export default class OpusHeader extends CodecHeader {
 
     if (header.channelMappingFamily !== 0) {
       header.length += 2 + header.channels;
-      if (data.length < header.length) return null;
+      if (data.length < header.length) return new OpusHeader(header, false); // out of data
 
       // * `HHHHHHHH`: Stream count
       header.streamCount = data[19];
@@ -144,15 +144,15 @@ export default class OpusHeader extends CodecHeader {
 
     header.bytes = data.subarray(0, header.length);
 
-    return new OpusHeader(header);
+    return new OpusHeader(header, true);
   }
 
   /**
    * @private
    * Call OpusHeader.getHeader(Array<Uint8>) to get instance
    */
-  constructor(header) {
-    super(header);
+  constructor(header, isParsed) {
+    super(header, isParsed);
     this._channelMappingFamily = header.channelMappingFamily;
     this._channelMappingTable = header.channelMappingTable;
     this._coupledStreamCount = header.coupledStreamCount;
@@ -162,6 +162,10 @@ export default class OpusHeader extends CodecHeader {
     this._preSkip = header.preSkip;
     this._bitDepth = 16;
     this._streamCount = header.streamCount;
+  }
+
+  set dataByteLength(dataByteLength) {
+    this._dataByteLength = dataByteLength;
   }
 
   set packet(packet) {

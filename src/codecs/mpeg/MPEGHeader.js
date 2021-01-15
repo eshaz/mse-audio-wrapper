@@ -156,8 +156,9 @@ const channelModes = {
 
 export default class MPEGHeader extends CodecHeader {
   static getHeader(buffer) {
+    const header = {};
     // Must be at least four bytes.
-    if (buffer.length < 4) return null;
+    if (buffer.length < 4) return new MPEGHeader(header, false);
 
     // Frame sync (all bits must be set): `11111111|111`:
     if (buffer[0] !== 0xff || buffer[1] < 0xe0) return null;
@@ -171,7 +172,6 @@ export default class MPEGHeader extends CodecHeader {
     const layerBits = buffer[1] & 0b00000110;
     const protectionBit = buffer[1] & 0b00000001;
 
-    const header = {};
     header.length = 4;
 
     // Mpeg version (1, 2, 2.5)
@@ -238,15 +238,15 @@ export default class MPEGHeader extends CodecHeader {
     header.emphasis = emphasis[emphasisBits];
     if (header.emphasis === "reserved") return null;
 
-    return new MPEGHeader(header);
+    return new MPEGHeader(header, true);
   }
 
   /**
    * @private
    * Call MPEGHeader.getHeader(Array<Uint8>) to get instance
    */
-  constructor(header) {
-    super(header);
+  constructor(header, isParsed) {
+    super(header, isParsed);
     this._bitrate = header.bitrate;
     this._emphasis = header.emphasis;
     this._framePadding = header.framePadding;

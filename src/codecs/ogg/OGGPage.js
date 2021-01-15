@@ -26,11 +26,10 @@ export default class OGGPage extends CodecFrame {
     super(
       oggPage,
       oggPage &&
-        data.subarray(oggPage.length, oggPage.length + oggPage.dataByteLength),
-      oggPage && oggPage.length + oggPage.dataByteLength
+        data.subarray(oggPage.length, oggPage.length + oggPage.dataByteLength)
     );
 
-    if (oggPage) {
+    if (oggPage && oggPage.isParsed) {
       let offset = oggPage.length;
       this._segments = oggPage.pageSegmentTable.map((segmentLength) => {
         const segment = data.subarray(offset, offset + segmentLength);
@@ -38,6 +37,13 @@ export default class OGGPage extends CodecFrame {
         return segment;
       });
     }
+  }
+
+  /**
+   * @returns Total length of frame (header + data)
+   */
+  get length() {
+    return this._header ? this._header.length + this._header.dataByteLength : 0;
   }
 
   get segments() {

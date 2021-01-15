@@ -36,30 +36,41 @@ export default class CodecParser {
   }
 
   /**
-   * @description Searches for CodecFrames within bytes containing a sequence of known codec frames.
+   * @description Searches without as much sync logic for more resilient framing
    * @param {Uint8Array} data Codec data that should contain a sequence of known length frames.
    * @returns {object} Object containing the actual offset and frame. Frame is undefined if no valid header was found
    */
   fixedLengthFrame(data) {
+    return this.fixedLengthFrameSync(data, false);
+  }
+
+  /**
+   * @description Searches for CodecFrames within bytes containing a sequence of known codec frames.
+   * @param {Uint8Array} data Codec data that should contain a sequence of known length frames.
+   * @returns {object} Object containing the actual offset and frame. Frame is undefined if no valid header was found
+   */
+  fixedLengthFrameSync(data, sync = true) {
     // initial sync
     let { frame, remainingData } = this.syncFrame(data);
     let frames = [];
 
-    // find a header in the data
     while (
-      frame.header &&
-      frame.length + remainingData + this._maxHeaderLength < data.length
+      frame.header && // was a header found
+      frame.header.isParsed && // was there enough data to parse the header
+      frame.length + remainingData + this._maxHeaderLength < data.length // is there enough data left to form a frame and check the next frame
     ) {
       // check if there is a valid frame immediately after this frame
       const nextFrame = new this.CodecFrame(
         data.subarray(frame.length + remainingData)
       );
 
-      if (nextFrame.header) {
+      if (nextFrame.header || !sync) {
         // there is a next frame, so the current frame is valid
         frames.push(frame);
         remainingData += frame.length;
         frame = nextFrame;
+        // out of data
+        if (nextFrame.header && !nextFrame.header.isParsed) break;
       } else {
         // frame is invalid and must re-sync
         remainingData++;

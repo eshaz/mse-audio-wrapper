@@ -89,14 +89,14 @@ export default class OpusFrame extends CodecFrame {
   }
 
   constructor(data, header) {
-    super(header, data, data.length);
+    if (header) {
+      const packet = OpusFrame.getPacket(data);
+      header.packet = packet;
+      header.duration = (packet.config.frameSize * packet.frameCount) / 1000;
+      header.samplesPerFrame = header.duration * header.sampleRate;
+      header.dataByteLength = data.length;
+    }
 
-    const packet = OpusFrame.getPacket(data);
-    this._header.packet = packet;
-    
-    this._header.duration =
-      (packet.config.frameSize * packet.frameCount) / 1000;
-    this._header.samplesPerFrame =
-      this._header.duration * this._header.sampleRate;
+    super(header, data);
   }
 }

@@ -31,10 +31,6 @@ export default class MPEGFrame extends CodecFrame {
       if (header) headerCache.set(key, header);
     }
 
-    super(
-      header,
-      header && data.subarray(0, header.dataByteLength),
-      header && header.dataByteLength
-    );
+    super(header, header && data.subarray(0, header.dataByteLength));
   }
 }

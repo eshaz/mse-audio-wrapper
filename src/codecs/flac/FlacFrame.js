@@ -20,6 +20,8 @@ import CodecFrame from "../CodecFrame";
 
 export default class FlacFrame extends CodecFrame {
   constructor(data, header) {
-    super(header, data, data.length);
+    if (header) header.dataByteLength = data.length;
+
+    super(header, data);
   }
 }

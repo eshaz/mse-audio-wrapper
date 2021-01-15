@@ -54,8 +54,10 @@ const OggS = 0x4f676753;
 
 export default class OGGPageHeader {
   static getHeader(buffer) {
+    const header = {};
+
     // Must be at least 28 bytes.
-    if (buffer.length < 28) return null;
+    if (buffer.length < 28) return new OGGPageHeader(header, false);
 
     let headerBytes = [];
     for (let i = 0; i < 28; i++) {
@@ -68,8 +70,6 @@ export default class OGGPageHeader {
     if (view.getUint32(0) !== OggS) {
       return null;
     }
-
-    const header = {};
 
     // Byte (5 of 28)
     // * `BBBBBBBB`: stream_structure_version
@@ -116,7 +116,7 @@ export default class OGGPageHeader {
     const pageSegmentTableLength = buffer[26];
     header.length = pageSegmentTableLength + 27;
 
-    if (header.length > buffer.length) return null;
+    if (header.length > buffer.length) return new OGGPageHeader(header, false); // out of data
 
     header.dataByteLength = 0;
     header.pageSegmentTable = [];
@@ -134,14 +134,15 @@ export default class OGGPageHeader {
       }
     }
 
-    return new OGGPageHeader(header);
+    return new OGGPageHeader(header, true);
   }
 
   /**
    * @private
    * Call OGGPageHeader.getHeader(Array<Uint8>) to get instance
    */
-  constructor(header) {
+  constructor(header, isParsed) {
+    this._isParsed = isParsed;
     this._absoluteGranulePosition = header.absoluteGranulePosition;
     this._dataByteLength = header.dataByteLength;
     this._isContinuedPacket = header.isContinuedPacket;
@@ -153,6 +154,10 @@ export default class OGGPageHeader {
     this._pageSequenceNumber = header.pageSequenceNumber;
     this._pageChecksum = header.pageChecksum;
     this._streamSerialNumber = header.streamSerialNumber;
+  }
+
+  get isParsed() {
+    return this._isParsed;
   }
 
   get absoluteGranulePosition() {

@@ -17,17 +17,15 @@
 */
 
 export default class CodecFrame {
-  constructor(header, data, length) {
+  constructor(header, data) {
     this._header = header;
     this._data = data || [];
-    this._length = length || 0;
   }
-
   /**
    * @returns Total length of frame (header + data)
    */
   get length() {
-    return this._length;
+    return this._header ? this._header.dataByteLength : 0;
   }
 
   /**

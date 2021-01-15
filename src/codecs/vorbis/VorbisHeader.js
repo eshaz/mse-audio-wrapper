@@ -51,8 +51,10 @@ const blockSizes = {
 
 export default class VorbisHeader extends CodecHeader {
   static getHeader(data) {
+    const header = { length: 29 };
+
     // Must be at least 29 bytes.
-    if (data.length < 29) return null;
+    if (data.length < 29) return new VorbisHeader(header, false);
 
     // Bytes (1-7 of 29): /01vorbis - Magic Signature
     if (
@@ -66,8 +68,6 @@ export default class VorbisHeader extends CodecHeader {
     ) {
       return null;
     }
-
-    const header = { length: 29 };
 
     const view = new DataView(
       Uint8Array.from([...data.subarray(0, 29)]).buffer
@@ -107,21 +107,25 @@ export default class VorbisHeader extends CodecHeader {
     header.bitDepth = 16;
     header.bytes = data.subarray(0, header.length);
 
-    return new VorbisHeader(header);
+    return new VorbisHeader(header, true);
   }
 
   /**
    * @private
    * Call VorbisHeader.getHeader(Array<Uint8>) to get instance
    */
-  constructor(header) {
-    super(header);
+  constructor(header, isParsed) {
+    super(header, isParsed);
     this._version = header.version;
     this._bitrateMaximum = header.bitrateMaximum;
     this._bitrateNominal = header.bitrateNominal;
     this._bitrateMinimum = header.bitrateMinimum;
     this._blocksize0 = header.blocksize0;
     this._blocksize1 = header.blocksize1;
+  }
+
+  set dataByteLength(dataByteLength) {
+    this._dataByteLength = dataByteLength;
   }
 
   set codecPrivate(codecPrivate) {

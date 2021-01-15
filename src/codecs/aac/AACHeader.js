@@ -116,8 +116,10 @@ const channelMode = {
 
 export default class AACHeader extends CodecHeader {
   static getHeader(buffer) {
-    // Must be at least seven bytes.
-    if (buffer.length < 7) return null;
+    const header = {};
+
+    // Must be at least seven bytes. Out of data
+    if (buffer.length < 7) return new AACHeader(header, false);
 
     // Frame sync (all bits must be set): `11111111|1111`:
     if (buffer[0] !== 0xff || buffer[1] < 0xf0) return null;
@@ -131,7 +133,6 @@ export default class AACHeader extends CodecHeader {
     const layerBits = buffer[1] & 0b00000110;
     const protectionBit = buffer[1] & 0b00000001;
 
-    const header = {};
     header.mpegVersion = mpegVersion[mpegVersionBits];
 
     header.layer = layer[layerBits];
@@ -208,15 +209,15 @@ export default class AACHeader extends CodecHeader {
       channelModeBits,
     };
 
-    return new AACHeader(header);
+    return new AACHeader(header, true);
   }
 
   /**
    * @private
    * Call AACHeader.getHeader(Array<Uint8>) to get instance
    */
-  constructor(header) {
-    super(header);
+  constructor(header, isParsed) {
+    super(header, isParsed);
     this._bits = header.bits;
     this._copyrightId = header.copyrightId;
     this._copyrightIdStart = header.copyrightIdStart;

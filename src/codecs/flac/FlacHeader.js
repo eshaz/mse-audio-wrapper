@@ -140,7 +140,6 @@ export default class FlacHeader extends CodecHeader {
       mask |= mask >> 1;
     }
 
-    if (data.length < next) return null; // not enough data
     if (next === 7) return null; // invalid
 
     const offset = (next - 1) * 6;
@@ -157,8 +156,10 @@ export default class FlacHeader extends CodecHeader {
   }
 
   static getHeader(buffer) {
+    const header = {};
+
     // Must be at least 6 bytes.
-    if (buffer.length < 6) return null;
+    if (buffer.length < 6) return new FlacHeader(header, false);
 
     // Bytes (1-2 of 6)
     // * `11111111|111110..`: Frame sync
@@ -167,7 +168,6 @@ export default class FlacHeader extends CodecHeader {
       return null;
     }
 
-    const header = {};
     header.length = 2;
 
     // Byte (2 of 6)
@@ -210,6 +210,9 @@ export default class FlacHeader extends CodecHeader {
     // Byte (5...)
     // * `IIIIIIII|...`: VBR block size ? sample number : frame number
     header.length++;
+
+    // check if there is enough data to parse UTF8
+    if (buffer.length < header.length + 8) return new FlacHeader(header, false);
     const decodedUtf8 = FlacHeader.decodeUTF8Int(buffer.subarray(4));
     if (!decodedUtf8) return null;
 
@@ -226,12 +229,13 @@ export default class FlacHeader extends CodecHeader {
     if (typeof header.blockSize === "string") {
       if (blockSizeBits === 0b01100000) {
         // 8 bit
-        if (buffer.length < header.length) return null; // out of data
+        if (buffer.length < header.length) return new FlacHeader(header, false); // out of data
         header.blockSize = buffer[header.length - 1] - 1;
         header.length += 1;
       } else if (blockSizeBits === 0b01110000) {
         // 16 bit
-        if (buffer.length <= header.length) return null; // out of data
+        if (buffer.length <= header.length)
+          return new FlacHeader(header, false); // out of data
         header.blockSize =
           (buffer[header.length - 1] << 8) + buffer[header.length] - 1;
         header.length += 2;
@@ -243,18 +247,20 @@ export default class FlacHeader extends CodecHeader {
     if (typeof header.sampleRate === "string") {
       if (sampleRateBits === 0b00001100) {
         // 8 bit
-        if (buffer.length < header.length) return null; // out of data
+        if (buffer.length < header.length) return new FlacHeader(header, false); // out of data
         header.sampleRate = buffer[header.length - 1] - 1;
         header.length += 1;
       } else if (sampleRateBits === 0b00001101) {
         // 16 bit
-        if (buffer.length <= header.length) return null; // out of data
+        if (buffer.length <= header.length)
+          return new FlacHeader(header, false); // out of data
         header.sampleRate =
           (buffer[header.length - 1] << 8) + buffer[header.length] - 1;
         header.length += 2;
       } else if (sampleRateBits === 0b00001110) {
         // 16 bit
-        if (buffer.length <= header.length) return null; // out of data
+        if (buffer.length <= header.length)
+          return new FlacHeader(header, false); // out of data
         header.sampleRate =
           (buffer[header.length - 1] << 8) + buffer[header.length] - 1;
         header.length += 2;
@@ -263,22 +269,22 @@ export default class FlacHeader extends CodecHeader {
 
     // Byte (...)
     // * `LLLLLLLL`: CRC-8
-    if (buffer.length < header.length) return null; // out of data
+    if (buffer.length < header.length) return new FlacHeader(header, false); // out of data
 
     header.crc = buffer[header.length - 1];
     if (header.crc !== crc8(buffer.subarray(0, header.length - 1))) {
       return null;
     }
 
-    return new FlacHeader(header);
+    return new FlacHeader(header, true);
   }
 
   /**
    * @private
    * Call FlacHeader.getHeader(Array<Uint8>) to get instance
    */
-  constructor(header) {
-    super(header);
+  constructor(header, isParsed) {
+    super(header, isParsed);
     this._blockingStrategy = header.blockingStrategy;
     this._blockSize = header.blockSize;
     this._crc = header.crc;
@@ -286,6 +292,10 @@ export default class FlacHeader extends CodecHeader {
     this._bitDepth = header.bitDepth;
     this._sampleNumber = header.sampleNumber;
     this._samplesPerFrame = header.blockSize;
+  }
+
+  set dataByteLength(dataByteLength) {
+    this._dataByteLength = dataByteLength;
   }
 
   get blockSize() {

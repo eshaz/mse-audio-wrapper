@@ -20,13 +20,21 @@ export default class CodecHeader {
   /**
    * @private
    */
-  constructor(header) {
+  constructor(header, isParsed) {
+    this._isParsed = isParsed;
     this._channelMode = header.channelMode;
     this._channels = header.channels;
     this._dataByteLength = header.dataByteLength;
     this._length = header.length;
     this._sampleRate = header.sampleRate;
     this._samplesPerFrame = header.samplesPerFrame;
+  }
+
+  /**
+   * @returns Boolean that returns true if the header has been completely parsed and there is no remaining data
+   */
+  get isParsed() {
+    return this._isParsed;
   }
 
   get channels() {
