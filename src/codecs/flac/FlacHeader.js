@@ -48,6 +48,7 @@ L   8   CRC-8 (polynomial = x^8 + x^2 + x^1 + x^0, initialized with 0) of everyt
 */
 
 import CodecHeader from "../CodecHeader";
+import HeaderCache from "../HeaderCache";
 import crc8 from "../crc8";
 
 const blockingStrategy = {
@@ -155,68 +156,75 @@ export default class FlacHeader extends CodecHeader {
     return { value, next };
   }
 
-  static getHeader(buffer) {
+  static getHeader(data, headerCache) {
     const header = {};
 
     // Must be at least 6 bytes.
-    if (buffer.length < 6) return new FlacHeader(header, false);
+    if (data.length < 6) return new FlacHeader(header, false);
 
-    // Bytes (1-2 of 6)
-    // * `11111111|111110..`: Frame sync
-    // * `........|......0.`: Reserved 0 - mandatory, 1 - reserved
-    if (buffer[0] !== 0xff || !(buffer[1] === 0xf8 || buffer[1] === 0xf9)) {
-      return null;
+    // Check header cache
+    const key = HeaderCache.getKey(data.subarray(0, 3));
+    const cachedHeader = headerCache.getHeader(key);
+
+    if (!cachedHeader) {
+      // Bytes (1-2 of 6)
+      // * `11111111|111110..`: Frame sync
+      // * `........|......0.`: Reserved 0 - mandatory, 1 - reserved
+      if (data[0] !== 0xff || !(data[1] === 0xf8 || data[1] === 0xf9)) {
+        return null;
+      }
+
+      header.length = 2;
+
+      // Byte (2 of 6)
+      // * `.......C`: Blocking strategy, 0 - fixed, 1 - variable
+      header.blockingStrategyBits = data[1] & 0b00000001;
+      header.blockingStrategy = blockingStrategy[header.blockingStrategyBits];
+
+      // Byte (3 of 6)
+      // * `DDDD....`: Block size in inter-channel samples
+      // * `....EEEE`: Sample rate
+      header.length++;
+      const blockSizeBits = data[2] & 0b11110000;
+      const sampleRateBits = data[2] & 0b00001111;
+
+      header.blockSize = blockSize[blockSizeBits];
+      if (header.blockSize === "reserved") return null;
+
+      header.sampleRate = sampleRate[sampleRateBits];
+      if (header.sampleRate === "invalid") return null;
+
+      // Byte (4 of 6)
+      // * `FFFF....`: Channel assignment
+      // * `....GGG.`: Sample size in bits
+      // * `.......H`: Reserved 0 - mandatory, 1 - reserved
+      header.length++;
+      if (data[3] & 0b00000001) return null;
+      const channelAssignmentBits = data[3] & 0b11110000;
+      const bitDepthBits = data[3] & 0b00001110;
+
+      const channelAssignment = channelAssignments[channelAssignmentBits];
+      if (channelAssignment === "reserved") return null;
+
+      header.channels = channelAssignment.channels;
+      header.channelMode = channelAssignment.description;
+
+      header.bitDepth = bitDepth[bitDepthBits];
+      if (header.bitDepth === "reserved") return null;
+    } else {
+      Object.assign(header, cachedHeader);
     }
-
-    header.length = 2;
-
-    // Byte (2 of 6)
-    // * `.......C`: Blocking strategy, 0 - fixed, 1 - variable
-    const blockingStrategyBits = buffer[1] & 0b00000001;
-
-    header.blockingStrategy = blockingStrategy[blockingStrategyBits];
-
-    // Byte (3 of 6)
-    // * `DDDD....`: Block size in inter-channel samples
-    // * `....EEEE`: Sample rate
-    header.length++;
-    const blockSizeBits = buffer[2] & 0b11110000;
-    const sampleRateBits = buffer[2] & 0b00001111;
-
-    header.blockSize = blockSize[blockSizeBits];
-    if (header.blockSize === "reserved") return null;
-
-    header.sampleRate = sampleRate[sampleRateBits];
-    if (header.sampleRate === "invalid") return null;
-
-    // Byte (4 of 6)
-    // * `FFFF....`: Channel assignment
-    // * `....GGG.`: Sample size in bits
-    // * `.......H`: Reserved 0 - mandatory, 1 - reserved
-    header.length++;
-    if (buffer[3] & 0b00000001) return null;
-    const channelAssignmentBits = buffer[3] & 0b11110000;
-    const bitDepthBits = buffer[3] & 0b00001110;
-
-    const channelAssignment = channelAssignments[channelAssignmentBits];
-    if (channelAssignment === "reserved") return null;
-
-    header.channels = channelAssignment.channels;
-    header.channelMode = channelAssignment.description;
-
-    header.bitDepth = bitDepth[bitDepthBits];
-    if (header.bitDepth === "reserved") return null;
 
     // Byte (5...)
     // * `IIIIIIII|...`: VBR block size ? sample number : frame number
-    header.length++;
+    header.length = 5;
 
     // check if there is enough data to parse UTF8
-    if (buffer.length < header.length + 8) return new FlacHeader(header, false);
-    const decodedUtf8 = FlacHeader.decodeUTF8Int(buffer.subarray(4));
+    if (data.length < header.length + 8) return new FlacHeader(header, false);
+    const decodedUtf8 = FlacHeader.decodeUTF8Int(data.subarray(4));
     if (!decodedUtf8) return null;
 
-    if (blockingStrategyBits) {
+    if (header.blockingStrategyBits) {
       header.sampleNumber = decodedUtf8.value;
     } else {
       header.frameNumber = decodedUtf8.value;
@@ -229,15 +237,14 @@ export default class FlacHeader extends CodecHeader {
     if (typeof header.blockSize === "string") {
       if (blockSizeBits === 0b01100000) {
         // 8 bit
-        if (buffer.length < header.length) return new FlacHeader(header, false); // out of data
-        header.blockSize = buffer[header.length - 1] - 1;
+        if (data.length < header.length) return new FlacHeader(header, false); // out of data
+        header.blockSize = data[header.length - 1] - 1;
         header.length += 1;
       } else if (blockSizeBits === 0b01110000) {
         // 16 bit
-        if (buffer.length <= header.length)
-          return new FlacHeader(header, false); // out of data
+        if (data.length <= header.length) return new FlacHeader(header, false); // out of data
         header.blockSize =
-          (buffer[header.length - 1] << 8) + buffer[header.length] - 1;
+          (data[header.length - 1] << 8) + data[header.length] - 1;
         header.length += 2;
       }
     }
@@ -247,35 +254,44 @@ export default class FlacHeader extends CodecHeader {
     if (typeof header.sampleRate === "string") {
       if (sampleRateBits === 0b00001100) {
         // 8 bit
-        if (buffer.length < header.length) return new FlacHeader(header, false); // out of data
-        header.sampleRate = buffer[header.length - 1] - 1;
+        if (data.length < header.length) return new FlacHeader(header, false); // out of data
+        header.sampleRate = data[header.length - 1] - 1;
         header.length += 1;
       } else if (sampleRateBits === 0b00001101) {
         // 16 bit
-        if (buffer.length <= header.length)
-          return new FlacHeader(header, false); // out of data
+        if (data.length <= header.length) return new FlacHeader(header, false); // out of data
         header.sampleRate =
-          (buffer[header.length - 1] << 8) + buffer[header.length] - 1;
+          (data[header.length - 1] << 8) + data[header.length] - 1;
         header.length += 2;
       } else if (sampleRateBits === 0b00001110) {
         // 16 bit
-        if (buffer.length <= header.length)
-          return new FlacHeader(header, false); // out of data
+        if (data.length <= header.length) return new FlacHeader(header, false); // out of data
         header.sampleRate =
-          (buffer[header.length - 1] << 8) + buffer[header.length] - 1;
+          (data[header.length - 1] << 8) + data[header.length] - 1;
         header.length += 2;
       }
     }
 
     // Byte (...)
     // * `LLLLLLLL`: CRC-8
-    if (buffer.length < header.length) return new FlacHeader(header, false); // out of data
+    if (data.length < header.length) return new FlacHeader(header, false); // out of data
 
-    header.crc = buffer[header.length - 1];
-    if (header.crc !== crc8(buffer.subarray(0, header.length - 1))) {
+    header.crc = data[header.length - 1];
+    if (header.crc !== crc8(data.subarray(0, header.length - 1))) {
       return null;
     }
 
+    if (!cachedHeader) {
+      const {
+        blockingStrategyBits,
+        frameNumber,
+        sampleNumber,
+        crc,
+        length,
+        ...codecUpdateFields
+      } = header;
+      headerCache.setHeader(key, header, codecUpdateFields);
+    }
     return new FlacHeader(header, true);
   }
 

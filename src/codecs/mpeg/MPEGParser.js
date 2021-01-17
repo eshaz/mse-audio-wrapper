@@ -20,8 +20,8 @@ import CodecParser from "../CodecParser";
 import MPEGFrame from "./MPEGFrame";
 
 export default class MPEGParser extends CodecParser {
-  constructor() {
-    super();
+  constructor(onCodecUpdate) {
+    super(onCodecUpdate);
     this.CodecFrame = MPEGFrame;
     this._maxHeaderLength = 4;
   }
@@ -31,6 +31,6 @@ export default class MPEGParser extends CodecParser {
   }
 
   parseFrames(data) {
-    return this.fixedLengthFrame(data);
+    return this.fixedLengthFrameSync(data);
   }
 }

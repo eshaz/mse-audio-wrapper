@@ -42,6 +42,7 @@ Q 	16 	CRC if protection absent is 0
 */
 
 import CodecHeader from "../CodecHeader";
+import HeaderCache from "../HeaderCache";
 
 const mpegVersion = {
   0b00000000: "MPEG-4",
@@ -68,19 +69,19 @@ const profile = {
 };
 
 const sampleRates = {
-  0b00000000: "96000",
-  0b00000100: "88200",
-  0b00001000: "64000",
-  0b00001100: "48000",
-  0b00010000: "44100",
-  0b00010100: "32000",
-  0b00011000: "24000",
-  0b00011100: "22050",
-  0b00100000: "16000",
-  0b00100100: "12000",
-  0b00101000: "11025",
-  0b00101100: "8000",
-  0b00110000: "7350",
+  0b00000000: 96000,
+  0b00000100: 88200,
+  0b00001000: 64000,
+  0b00001100: 48000,
+  0b00010000: 44100,
+  0b00010100: 32000,
+  0b00011000: 24000,
+  0b00011100: 22050,
+  0b00100000: 16000,
+  0b00100100: 12000,
+  0b00101000: 11025,
+  0b00101100: 8000,
+  0b00110000: 7350,
   0b00110100: "reserved",
   0b00111000: "reserved",
   0b00111100: "frequency is written explicitly",
@@ -115,77 +116,91 @@ const channelMode = {
 };
 
 export default class AACHeader extends CodecHeader {
-  static getHeader(buffer) {
+  static getHeader(data, headerCache) {
     const header = {};
 
     // Must be at least seven bytes. Out of data
-    if (buffer.length < 7) return new AACHeader(header, false);
+    if (data.length < 7) return new AACHeader(header, false);
 
-    // Frame sync (all bits must be set): `11111111|1111`:
-    if (buffer[0] !== 0xff || buffer[1] < 0xf0) return null;
+    // Check header cache
+    const key = HeaderCache.getKey([
+      data[0],
+      data[1],
+      data[2],
+      data[3] & 111111100, // frame length varies so don't cache it
+    ]);
+    const cachedHeader = headerCache.getHeader(key);
 
-    // Byte (2 of 7)
-    // * `1111BCCD`
-    // * `....B...`: MPEG Version: 0 for MPEG-4, 1 for MPEG-2
-    // * `.....CC.`: Layer: always 0
-    // * `.......D`: protection absent, Warning, set to 1 if there is no CRC and 0 if there is CRC
-    const mpegVersionBits = buffer[1] & 0b00001000;
-    const layerBits = buffer[1] & 0b00000110;
-    const protectionBit = buffer[1] & 0b00000001;
+    if (!cachedHeader) {
+      // Frame sync (all bits must be set): `11111111|1111`:
+      if (data[0] !== 0xff || data[1] < 0xf0) return null;
 
-    header.mpegVersion = mpegVersion[mpegVersionBits];
+      // Byte (2 of 7)
+      // * `1111BCCD`
+      // * `....B...`: MPEG Version: 0 for MPEG-4, 1 for MPEG-2
+      // * `.....CC.`: Layer: always 0
+      // * `.......D`: protection absent, Warning, set to 1 if there is no CRC and 0 if there is CRC
+      const mpegVersionBits = data[1] & 0b00001000;
+      const layerBits = data[1] & 0b00000110;
+      const protectionBit = data[1] & 0b00000001;
 
-    header.layer = layer[layerBits];
-    if (header.layer === "bad") return null;
+      header.mpegVersion = mpegVersion[mpegVersionBits];
 
-    header.protection = protection[protectionBit];
-    header.length = protectionBit ? 7 : 9;
+      header.layer = layer[layerBits];
+      if (header.layer === "bad") return null;
 
-    // Byte (3 of 7)
-    // * `EEFFFFGH`
-    // * `EE......`: profile, the MPEG-4 Audio Object Type minus 1
-    // * `..FFFF..`: MPEG-4 Sampling Frequency Index (15 is forbidden)
-    // * `......G.`: private bit, guaranteed never to be used by MPEG, set to 0 when encoding, ignore when decoding
-    const profileBits = buffer[2] & 0b11000000;
-    const sampleRateBits = buffer[2] & 0b00111100;
-    const privateBit = buffer[2] & 0b00000010;
+      header.protection = protection[protectionBit];
+      header.length = protectionBit ? 7 : 9;
 
-    header.profile = profile[profileBits];
+      // Byte (3 of 7)
+      // * `EEFFFFGH`
+      // * `EE......`: profile, the MPEG-4 Audio Object Type minus 1
+      // * `..FFFF..`: MPEG-4 Sampling Frequency Index (15 is forbidden)
+      // * `......G.`: private bit, guaranteed never to be used by MPEG, set to 0 when encoding, ignore when decoding
+      header.profileBits = data[2] & 0b11000000;
+      header.sampleRateBits = data[2] & 0b00111100;
+      const privateBit = data[2] & 0b00000010;
 
-    header.sampleRate = sampleRates[sampleRateBits];
-    if (header.sampleRate === "reserved") return null;
+      header.profile = profile[header.profileBits];
 
-    header.isPrivate = !!(privateBit >> 1);
+      header.sampleRate = sampleRates[header.sampleRateBits];
+      if (header.sampleRate === "reserved") return null;
 
-    // Byte (3,4 of 7)
-    // * `.......H|HH......`: MPEG-4 Channel Configuration (in the case of 0, the channel configuration is sent via an inband PCE)
-    const channelModeBits =
-      new DataView(Uint8Array.from([buffer[2], buffer[3]]).buffer).getUint16() &
-      0b111000000;
-    header.channelMode = channelMode[channelModeBits].description;
-    header.channels = channelMode[channelModeBits].channels;
+      header.isPrivate = !!(privateBit >> 1);
 
-    // Byte (4 of 7)
-    // * `HHIJKLMM`
-    // * `..I.....`: originality, set to 0 when encoding, ignore when decoding
-    // * `...J....`: home, set to 0 when encoding, ignore when decoding
-    // * `....K...`: copyrighted id bit, the next bit of a centrally registered copyright identifier, set to 0 when encoding, ignore when decoding
-    // * `.....L..`: copyright id start, signals that this frame's copyright id bit is the first bit of the copyright id, set to 0 when encoding, ignore when decoding
-    const originalBit = buffer[3] & 0b00100000;
-    const homeBit = buffer[3] & 0b00001000;
-    const copyrightIdBit = buffer[3] & 0b00001000;
-    const copyrightIdStartBit = buffer[3] & 0b00000100;
+      // Byte (3,4 of 7)
+      // * `.......H|HH......`: MPEG-4 Channel Configuration (in the case of 0, the channel configuration is sent via an inband PCE)
+      header.channelModeBits =
+        new DataView(Uint8Array.from([data[2], data[3]]).buffer).getUint16() &
+        0b111000000;
+      header.channelMode = channelMode[header.channelModeBits].description;
+      header.channels = channelMode[header.channelModeBits].channels;
 
-    header.isOriginal = !!(originalBit >> 5);
-    header.isHome = !!(homeBit >> 4);
-    header.copyrightId = !!(copyrightIdBit >> 3);
-    header.copyrightIdStart = !!(copyrightIdStartBit >> 2);
+      // Byte (4 of 7)
+      // * `HHIJKLMM`
+      // * `..I.....`: originality, set to 0 when encoding, ignore when decoding
+      // * `...J....`: home, set to 0 when encoding, ignore when decoding
+      // * `....K...`: copyrighted id bit, the next bit of a centrally registered copyright identifier, set to 0 when encoding, ignore when decoding
+      // * `.....L..`: copyright id start, signals that this frame's copyright id bit is the first bit of the copyright id, set to 0 when encoding, ignore when decoding
+      const originalBit = data[3] & 0b00100000;
+      const homeBit = data[3] & 0b00001000;
+      const copyrightIdBit = data[3] & 0b00001000;
+      const copyrightIdStartBit = data[3] & 0b00000100;
+
+      header.isOriginal = !!(originalBit >> 5);
+      header.isHome = !!(homeBit >> 4);
+      header.copyrightId = !!(copyrightIdBit >> 3);
+      header.copyrightIdStart = !!(copyrightIdStartBit >> 2);
+      header.bitDepth = 16;
+    } else {
+      Object.assign(header, cachedHeader);
+    }
 
     // Byte (4,5,6 of 7)
     // * `.......MM|MMMMMMMM|MMM.....`: frame length, this value must include 7 or 9 bytes of header length: FrameLength = (ProtectionAbsent == 1 ? 7 : 9) + size(AACFrame)
     const frameLengthBits =
       new DataView(
-        Uint8Array.from([0x00, buffer[3], buffer[4], buffer[5]]).buffer
+        Uint8Array.from([0x00, data[3], data[4], data[5]]).buffer
       ).getUint32() & 0x3ffe0;
     header.dataByteLength = frameLengthBits >> 5;
     if (!header.dataByteLength) return null;
@@ -193,22 +208,30 @@ export default class AACHeader extends CodecHeader {
     // Byte (6,7 of 7)
     // * `...OOOOO|OOOOOO..`: Buffer fullness
     const bufferFullnessBits =
-      new DataView(Uint8Array.from([buffer[5], buffer[6]]).buffer).getUint16() &
+      new DataView(Uint8Array.from([data[5], data[6]]).buffer).getUint16() &
       0x1ffc;
     header.bufferFullness =
       bufferFullnessBits === 0x1ffc ? "VBR" : bufferFullnessBits >> 2;
 
     // Byte (7 of 7)
     // * `......PP` Number of AAC frames (RDBs) in ADTS frame minus 1, for maximum compatibility always use 1 AAC frame per ADTS frame
-    header.numberAACFrames = buffer[6] & 0b00000011;
+    header.numberAACFrames = data[6] & 0b00000011;
     header.samplesPerFrame = 1024;
 
-    header.bits = {
-      profileBits,
-      sampleRateBits,
-      channelModeBits,
-    };
-
+    if (!cachedHeader) {
+      const {
+        length,
+        channelModeBits,
+        profileBits,
+        sampleRateBits,
+        dataByteLength,
+        bufferFullness,
+        numberAACFrames,
+        samplesPerFrame,
+        ...codecUpdateFields
+      } = header;
+      headerCache.setHeader(key, header, codecUpdateFields);
+    }
     return new AACHeader(header, true);
   }
 
@@ -218,7 +241,6 @@ export default class AACHeader extends CodecHeader {
    */
   constructor(header, isParsed) {
     super(header, isParsed);
-    this._bits = header.bits;
     this._copyrightId = header.copyrightId;
     this._copyrightIdStart = header.copyrightIdStart;
     this._bufferFullness = header.bufferFullness;
@@ -230,6 +252,9 @@ export default class AACHeader extends CodecHeader {
     this._numberAACFrames = header.numberAACFrames;
     this._profile = header.profile;
     this._protection = header.protection;
+    this._profileBits = header.profileBits;
+    this._sampleRateBits = header.sampleRateBits;
+    this._channelModeBits = header.channelModeBits;
   }
 
   get audioSpecificConfig() {
@@ -242,9 +267,9 @@ export default class AACHeader extends CodecHeader {
     // * `........|......0.`: does not depend on core coder
     // * `........|.......0`: Not Extension
     const audioSpecificConfig =
-      ((this._bits.profileBits + 0x40) << 5) |
-      (this._bits.sampleRateBits << 5) |
-      (this._bits.channelModeBits >> 3);
+      ((this._profileBits + 0x40) << 5) |
+      (this._sampleRateBits << 5) |
+      (this._channelModeBits >> 3);
 
     const bytes = new Uint8Array(2);
     new DataView(bytes.buffer).setUint16(0, audioSpecificConfig, false);

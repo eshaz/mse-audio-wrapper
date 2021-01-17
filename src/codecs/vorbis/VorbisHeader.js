@@ -36,6 +36,7 @@ K      1    Framing flag
 */
 
 import CodecHeader from "../CodecHeader";
+import HeaderCache from "../HeaderCache";
 
 /* prettier-ignore */
 const blockSizes = {
@@ -50,11 +51,16 @@ const blockSizes = {
 };
 
 export default class VorbisHeader extends CodecHeader {
-  static getHeader(data) {
+  static getHeader(data, headerCache) {
     const header = { length: 29 };
 
     // Must be at least 29 bytes.
     if (data.length < 29) return new VorbisHeader(header, false);
+
+    // Check header cache
+    const key = HeaderCache.getKey(data.subarray(0, 29));
+    const cachedHeader = headerCache.getHeader(key);
+    if (cachedHeader) return new VorbisHeader(cachedHeader, true);
 
     // Bytes (1-7 of 29): /01vorbis - Magic Signature
     if (
@@ -107,6 +113,10 @@ export default class VorbisHeader extends CodecHeader {
     header.bitDepth = 16;
     header.bytes = data.subarray(0, header.length);
 
+    // set header cache
+    const { length, bytes, version, ...codecUpdateFields } = header;
+
+    headerCache.setHeader(key, header, codecUpdateFields);
     return new VorbisHeader(header, true);
   }
 

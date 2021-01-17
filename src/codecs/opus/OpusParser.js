@@ -21,8 +21,8 @@ import OpusFrame from "./OpusFrame";
 import OpusHeader from "./OpusHeader";
 
 export default class OpusParser extends CodecParser {
-  constructor() {
-    super();
+  constructor(onCodecUpdate) {
+    super(onCodecUpdate);
     this.CodecFrame = OpusFrame;
     this._opusHead = null;
     this._maxHeaderLength = 26;
@@ -34,7 +34,7 @@ export default class OpusParser extends CodecParser {
 
   parseFrames(oggPage) {
     if (oggPage.header.pageSequenceNumber === 0) {
-      this._opusHead = OpusHeader.getHeader(oggPage.data);
+      this._opusHead = OpusHeader.getHeader(oggPage.data, this._headerCache);
       return { frames: [], remainingData: 0 };
     }
 

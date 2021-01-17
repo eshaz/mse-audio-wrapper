@@ -33,9 +33,11 @@ export default class MSEAudioWrapper {
    */
   constructor(mimeType, options = {}) {
     this._inputMimeType = mimeType;
+
     this.PREFERRED_CONTAINER = options.preferredContainer || "fmp4";
     this.MIN_FRAMES = options.minFramesPerSegment || 4;
     this.MIN_FRAMES_LENGTH = options.minBytesPerSegment || 1022;
+    this._onCodecUpdate = options.onCodecUpdate || (() => {});
 
     this._frames = [];
     this._codecData = new Uint8Array(0);
@@ -97,11 +99,11 @@ export default class MSEAudioWrapper {
    */
   _getCodecParser() {
     if (this._inputMimeType.match(/aac/)) {
-      return new AACParser();
+      return new AACParser(this._onCodecUpdate);
     } else if (this._inputMimeType.match(/mpeg/)) {
-      return new MPEGParser();
+      return new MPEGParser(this._onCodecUpdate);
     } else if (this._inputMimeType.match(/ogg/)) {
-      return new OGGParser();
+      return new OGGParser(this._onCodecUpdate);
     }
   }
 

@@ -17,6 +17,7 @@
 */
 
 import CodecHeader from "../CodecHeader";
+import HeaderCache from "../HeaderCache";
 
 // http://www.mp3-tech.org/programmer/frame_header.html
 
@@ -155,22 +156,27 @@ const channelModes = {
 };
 
 export default class MPEGHeader extends CodecHeader {
-  static getHeader(buffer) {
+  static getHeader(data, headerCache) {
     const header = {};
     // Must be at least four bytes.
-    if (buffer.length < 4) return new MPEGHeader(header, false);
+    if (data.length < 4) return new MPEGHeader(header, false);
+
+    // Check header cache
+    const key = HeaderCache.getKey(data.subarray(0, 4));
+    const cachedHeader = headerCache.getHeader(key);
+    if (cachedHeader) return new MPEGHeader(cachedHeader, true);
 
     // Frame sync (all bits must be set): `11111111|111`:
-    if (buffer[0] !== 0xff || buffer[1] < 0xe0) return null;
+    if (data[0] !== 0xff || data[1] < 0xe0) return null;
 
     // Byte (2 of 4)
     // * `111BBCCD`
     // * `...BB...`: MPEG Audio version ID
     // * `.....CC.`: Layer description
     // * `.......D`: Protection bit (0 - Protected by CRC (16bit CRC follows header), 1 = Not protected)
-    const mpegVersionBits = buffer[1] & 0b00011000;
-    const layerBits = buffer[1] & 0b00000110;
-    const protectionBit = buffer[1] & 0b00000001;
+    const mpegVersionBits = data[1] & 0b00011000;
+    const layerBits = data[1] & 0b00000110;
+    const protectionBit = data[1] & 0b00000001;
 
     header.length = 4;
 
@@ -196,10 +202,10 @@ export default class MPEGHeader extends CodecHeader {
     // * `....FF..`: Sample rate
     // * `......G.`: Padding bit, 0=frame not padded, 1=frame padded
     // * `.......H`: Private bit.
-    const bitrateBits = buffer[2] & 0b11110000;
-    const sampleRateBits = buffer[2] & 0b00001100;
-    const paddingBit = buffer[2] & 0b00000010;
-    const privateBit = buffer[2] & 0b00000001;
+    const bitrateBits = data[2] & 0b11110000;
+    const sampleRateBits = data[2] & 0b00001100;
+    const paddingBit = data[2] & 0b00000010;
+    const privateBit = data[2] & 0b00000001;
 
     header.bitrate = bitrateMatrix[bitrateBits][layer.bitrateIndex];
     if (header.bitrate === "bad") return null;
@@ -223,11 +229,11 @@ export default class MPEGHeader extends CodecHeader {
     // * `....K...`: Copyright
     // * `.....L..`: Original
     // * `......MM`: Emphasis
-    const channelModeBits = buffer[3] & 0b11000000;
-    const modeExtensionBits = buffer[3] & 0b00110000;
-    const copyrightBit = buffer[3] & 0b00001000;
-    const originalBit = buffer[3] & 0b00000100;
-    const emphasisBits = buffer[3] & 0b00000011;
+    const channelModeBits = data[3] & 0b11000000;
+    const modeExtensionBits = data[3] & 0b00110000;
+    const copyrightBit = data[3] & 0b00001000;
+    const originalBit = data[3] & 0b00000100;
+    const emphasisBits = data[3] & 0b00000011;
 
     header.channelMode = channelModes[channelModeBits].description;
     header.channels = channelModes[channelModeBits].channels;
@@ -238,6 +244,17 @@ export default class MPEGHeader extends CodecHeader {
     header.emphasis = emphasis[emphasisBits];
     if (header.emphasis === "reserved") return null;
 
+    header.bitDepth = 16;
+
+    // set header cache
+    const {
+      length,
+      dataByteLength,
+      samplesPerFrame,
+      ...codecUpdateFields
+    } = header;
+
+    headerCache.setHeader(key, header, codecUpdateFields);
     return new MPEGHeader(header, true);
   }
 

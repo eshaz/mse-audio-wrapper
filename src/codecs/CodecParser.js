@@ -16,20 +16,32 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 */
 
+import HeaderCache from "./HeaderCache";
+
 /**
  * @abstract
  * @description Abstract class containing methods for parsing codec frames
  */
 export default class CodecParser {
+  constructor(onCodecUpdate) {
+    this._headerCache = new HeaderCache(onCodecUpdate);
+  }
+
   syncFrame(data, remainingData = 0) {
-    let frame = new this.CodecFrame(data.subarray(remainingData));
+    let frame = new this.CodecFrame(
+      data.subarray(remainingData),
+      this._headerCache
+    );
 
     while (
       !frame.header &&
       remainingData + this._maxHeaderLength < data.length
     ) {
       remainingData += frame.length || 1;
-      frame = new this.CodecFrame(data.subarray(remainingData));
+      frame = new this.CodecFrame(
+        data.subarray(remainingData),
+        this._headerCache
+      );
     }
 
     return { frame, remainingData };
@@ -61,19 +73,23 @@ export default class CodecParser {
     ) {
       // check if there is a valid frame immediately after this frame
       const nextFrame = new this.CodecFrame(
-        data.subarray(frame.length + remainingData)
+        data.subarray(frame.length + remainingData),
+        this._headerCache
       );
 
       if (nextFrame.header || !sync) {
+        // start caching when synced
+        this._headerCache.enable();
         // there is a next frame, so the current frame is valid
         frames.push(frame);
         remainingData += frame.length;
         frame = nextFrame;
-        // out of data
-        if (nextFrame.header && !nextFrame.header.isParsed) break;
+
+        if (nextFrame.header && !nextFrame.header.isParsed) break; // out of data
       } else {
-        // frame is invalid and must re-sync
-        remainingData++;
+        // frame is invalid and must re-sync and clear cache
+        this._headerCache.reset();
+        remainingData++; // increment to invalidate the invalid frame
         const syncResult = this.syncFrame(data, remainingData);
         remainingData += syncResult.remainingData;
         frame = syncResult.frame;

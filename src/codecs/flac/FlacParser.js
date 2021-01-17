@@ -21,8 +21,8 @@ import FlacFrame from "./FlacFrame";
 import FlacHeader from "./FlacHeader";
 
 export default class FlacParser extends CodecParser {
-  constructor() {
-    super();
+  constructor(onCodecUpdate) {
+    super(onCodecUpdate);
     this.CodecFrame = FlacFrame;
   }
 
@@ -44,7 +44,7 @@ export default class FlacParser extends CodecParser {
       };
     }
 
-    this._initialHeader = FlacHeader.getHeader(oggPage.data);
+    this._initialHeader = FlacHeader.getHeader(oggPage.data, this._headerCache);
     return { frames: [], remainingData: 0 };
   }
 }

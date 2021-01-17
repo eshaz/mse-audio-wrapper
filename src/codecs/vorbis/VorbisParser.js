@@ -21,8 +21,8 @@ import VorbisFrame from "./VorbisFrame";
 import VorbisHeader from "./VorbisHeader";
 
 export default class VorbisParser extends CodecParser {
-  constructor() {
-    super();
+  constructor(onCodecUpdate) {
+    super(onCodecUpdate);
     this.CodecFrame = VorbisFrame;
     this._maxHeaderLength = 29;
 
@@ -41,7 +41,10 @@ export default class VorbisParser extends CodecParser {
 
   parseFrames(oggPage) {
     if (oggPage.header.pageSequenceNumber === 0) {
-      this._vorbisHead = VorbisHeader.getHeader(oggPage.data);
+      this._vorbisHead = VorbisHeader.getHeader(
+        oggPage.data,
+        this._headerCache
+      );
       // gather WEBM CodecPrivate data
       this._codecPrivate.vorbisHead = oggPage.segments[0];
       this._codecPrivate.lacing = this._codecPrivate.lacing.concat(

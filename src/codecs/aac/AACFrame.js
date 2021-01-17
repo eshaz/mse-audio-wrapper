@@ -20,8 +20,8 @@ import CodecFrame from "../CodecFrame";
 import AACHeader from "./AACHeader";
 
 export default class AACFrame extends CodecFrame {
-  constructor(data) {
-    const header = AACHeader.getHeader(data);
+  constructor(data, headerCache) {
+    const header = AACHeader.getHeader(data, headerCache);
 
     super(
       header,
