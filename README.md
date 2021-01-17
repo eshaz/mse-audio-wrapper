@@ -4,9 +4,9 @@
 
  * [**API**](#mse-audio-wrapper)
    * [**MSEAudioWrapper**](#MSEAudioWrapper)
-     * Takes in audio (MP3, AAC, OGG Flac, or OGG Opus)
+     * Takes in audio (MP3, AAC, Ogg Flac, Ogg Opus, or Ogg Vorbis)
      * Outputs
-       * ISOBMFF (fMP4) (MP3, AAC, Flac, or Opus)
+       * ISOBMFF (fMP4) (MP3, AAC, Flac, Opus, or Vorbis)
        * WEBM (Opus)
  * [**Demo**](#demo)
    * React application that demonstrates MSEAudioWrapper being used to support `icecast-metadata-js`
@@ -20,7 +20,7 @@
 
 https://github.com/eshaz/mse-audio-wrapper/tree/master/src/MSEAudioWrapper.js
 
-A class that takes in audio (MP3, AAC, OGG Flac, or OGG Opus) and outputs fragmented ISOBMFF or WEBM.
+A class that takes in audio (MP3, AAC, Ogg Flac, or Ogg Opus) and outputs fragmented ISOBMFF or WEBM.
 
 ### Usage
 
@@ -84,7 +84,9 @@ A class that takes in audio (MP3, AAC, OGG Flac, or OGG Opus) and outputs fragme
       * AAC - `audio/aac`, `audio/aacp`
       * Ogg FLAC - `application/ogg`, `audio/ogg`
       * Ogg Opus - `application/ogg`, `audio/ogg`
+      * Ogg Vorbis - `application/ogg`, `audio/ogg`
     * `options` *optional*
+      ### Options
       * `options.minFramesPerSegment` *optional* Minimum audio frames to store before returning a segment
         * Accepts an integer greater than 0
         * Defaults to `4`
@@ -94,6 +96,8 @@ A class that takes in audio (MP3, AAC, OGG Flac, or OGG Opus) and outputs fragme
       * `options.preferredContainer` *optional* Preferred output container when there are multiple supported containers
         * Accepts `"webm"`, `"fmp4"`
         * Defaults to `"fmp4"`
+      ### Callbacks
+      * `options.onCodecUpdate(codecInfo)` *optional* Called when there is a change in the codec header. `codecInfo` is an object containing information about the codec such as `bitrate`, `sampleRate`, etc.
 * `wrapper.iterator(data)`
   * Returns an Iterator that can be used in a `for ...of` loop to return wrapped audio
   * Parameters:
@@ -105,15 +109,17 @@ A class that takes in audio (MP3, AAC, OGG Flac, or OGG Opus) and outputs fragme
     * AAC - `audio/aac`
     * Ogg FLAC - `application/ogg`, `audio/ogg`
     * Ogg Opus - `application/ogg`, `audio/ogg`
+    * Ogg Vorbis - `application/ogg`, `audio/ogg`
 * `wrapper.mimeType`
   * Getter that returns the mime-type of the wrapped audio data
-    * **Note: For OGG streams, the mime-type will only be available after the first media segment is returned.**
+    * **Note: For Ogg streams, the mime-type will only be available after the first media segment is returned.**
   * Examples:
     * MP3 - `audio/mp4;codecs="mp3"`
     * AAC - `audio/mp4;codecs="mp4a.40.2"`
     * FLAC - `audio/mp4;codecs="flac"`
     * OPUS (ISOBMFF) - `audio/mp4;codecs="opus"`
     * OPUS (WEBM) - `audio/webm;codecs="opus"`
+    * Vorbis - `audio/webm;codecs="vorbis"`
 ---
 
 

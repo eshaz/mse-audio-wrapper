@@ -30,7 +30,7 @@ IIIIIIII IIIIIIII IIIIIIII IIIIIIII
 JJJJJJJJ
 LLLLLLLL...
 
-OGG Page Header
+Ogg Page Header
 Letter 	Length (bits) 	Description
 A 	32 	0x4f676753, "OggS"
 B 	8 	stream_structure_version
@@ -52,12 +52,12 @@ L   n   Segment table (n=page_segments+26).
 
 const OggS = 0x4f676753;
 
-export default class OGGPageHeader {
+export default class OggPageHeader {
   static getHeader(data) {
     const header = {};
 
     // Must be at least 28 bytes.
-    if (data.length < 28) return new OGGPageHeader(header, false);
+    if (data.length < 28) return new OggPageHeader(header, false);
 
     const view = new DataView(
       Uint8Array.from([...data.subarray(0, 28)]).buffer
@@ -114,7 +114,7 @@ export default class OGGPageHeader {
     const pageSegmentTableLength = data[26];
     header.length = pageSegmentTableLength + 27;
 
-    if (header.length > data.length) return new OGGPageHeader(header, false); // out of data
+    if (header.length > data.length) return new OggPageHeader(header, false); // out of data
 
     header.dataByteLength = 0;
     header.pageSegmentTable = [];
@@ -132,12 +132,12 @@ export default class OGGPageHeader {
       }
     }
 
-    return new OGGPageHeader(header, true);
+    return new OggPageHeader(header, true);
   }
 
   /**
    * @private
-   * Call OGGPageHeader.getHeader(Array<Uint8>) to get instance
+   * Call OggPageHeader.getHeader(Array<Uint8>) to get instance
    */
   constructor(header, isParsed) {
     this._isParsed = isParsed;

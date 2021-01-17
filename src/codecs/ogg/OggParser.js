@@ -17,23 +17,23 @@
 */
 
 import CodecParser from "../CodecParser";
-import OGGPage from "./OGGPage";
+import OggPage from "./OggPage";
 
 import FlacParser from "../flac/FlacParser";
 import OpusParser from "../opus/OpusParser";
 import VorbisParser from "../vorbis/VorbisParser";
 
-export default class OGGParser extends CodecParser {
+export default class OggParser extends CodecParser {
   constructor(onCodecUpdate) {
     super();
     this._onCodecUpdate = onCodecUpdate;
-    this.CodecFrame = OGGPage;
+    this.CodecFrame = OggPage;
     this._maxHeaderLength = 283;
     this._codec = null;
   }
 
   get codec() {
-    return this._codec || "flac,opus";
+    return this._codec || "";
   }
 
   _matchBytes(matchString, bytes) {

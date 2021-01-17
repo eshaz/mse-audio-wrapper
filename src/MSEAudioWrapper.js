@@ -18,7 +18,7 @@
 
 import MPEGParser from "./codecs/mpeg/MPEGParser";
 import AACParser from "./codecs/aac/AACParser";
-import OGGParser from "./codecs/ogg/OGGParser";
+import OggParser from "./codecs/ogg/OggParser";
 import ISOBMFFContainer from "./containers/isobmff/ISOBMFFContainer";
 import WEBMContainer from "./containers/webm/WEBMContainer";
 
@@ -103,7 +103,7 @@ export default class MSEAudioWrapper {
     } else if (this._inputMimeType.match(/mpeg/)) {
       return new MPEGParser(this._onCodecUpdate);
     } else if (this._inputMimeType.match(/ogg/)) {
-      return new OGGParser(this._onCodecUpdate);
+      return new OggParser(this._onCodecUpdate);
     }
   }
 

@@ -17,11 +17,11 @@
 */
 
 import CodecFrame from "../CodecFrame";
-import OGGPageHeader from "./OGGPageHeader";
+import OggPageHeader from "./OggPageHeader";
 
-export default class OGGPage extends CodecFrame {
+export default class OggPage extends CodecFrame {
   constructor(data) {
-    const oggPage = OGGPageHeader.getHeader(data);
+    const oggPage = OggPageHeader.getHeader(data);
 
     super(
       oggPage,
