@@ -19,6 +19,7 @@
 import CodecParser from "../CodecParser";
 import VorbisFrame from "./VorbisFrame";
 import VorbisHeader from "./VorbisHeader";
+import { parseSetupHeader, reverse, toBinary } from "./parseSetupHeader";
 
 export default class VorbisParser extends CodecParser {
   constructor(onCodecUpdate) {
@@ -33,6 +34,12 @@ export default class VorbisParser extends CodecParser {
       vorbisHead: null,
       vorbisSetup: null,
     };
+
+    this._mode = {
+      count: 0,
+    };
+    this._prevBlockSize = 0;
+    this._currBlockSize = 0;
   }
 
   get codec() {
@@ -51,6 +58,8 @@ export default class VorbisParser extends CodecParser {
         ...oggPage.header.pageSegmentBytes
       );
 
+      console.log(this._vorbisHead);
+
       return { frames: [], remainingData: 0 };
     }
 
@@ -64,14 +73,50 @@ export default class VorbisParser extends CodecParser {
 
       this._vorbisHead.codecPrivate = this._codecPrivate;
 
+      this._mode = parseSetupHeader(oggPage.segments[1]);
+
       return { frames: [], remainingData: 0 };
     }
 
     return {
       frames: oggPage.segments.map(
-        (segment) => new VorbisFrame(segment, this._vorbisHead)
+        (segment) =>
+          new VorbisFrame(
+            segment,
+            this._vorbisHead,
+            this._getSamplesPerFrame(segment)
+          )
       ),
       remainingData: 0,
     };
+  }
+
+  _getSamplesPerFrame(segment) {
+    const byte = segment[0] >> 1;
+
+    const blockFlag = this._mode[byte & this._mode.mask];
+    let prevWindowBlockFlag, nextWindowBlockFlag;
+
+    // is this a large window
+    if (blockFlag) {
+      prevWindowBlockFlag = byte & this._mode.prevMask ? 1 : 0;
+      nextWindowBlockFlag = byte & this._mode.nextMask ? 1 : 0;
+      this._prevBlockSize = this._vorbisHead[`blocksize${prevWindowBlockFlag}`];
+    }
+
+    this._currBlockSize = this._vorbisHead[`blocksize${blockFlag}`];
+
+    const samples = (this._prevBlockSize + this._currBlockSize) >> 2;
+    this._prevBlockSize = this._currBlockSize;
+
+    console.log(
+      toBinary(byte, 8),
+      blockFlag,
+      prevWindowBlockFlag,
+      nextWindowBlockFlag,
+      samples
+    );
+
+    return samples;
   }
 }

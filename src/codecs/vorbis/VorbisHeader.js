@@ -30,8 +30,8 @@ E      32   Sample rate
 F      32   Bitrate Maximum (signed)
 G      32   Bitrate Nominal (signed)
 H      32   Bitrate Minimum (signed)
-I      4    blocksize 0
-J      4    blocksize 1
+I      4    blocksize 1
+J      4    blocksize 0
 K      1    Framing flag
 */
 
@@ -105,10 +105,10 @@ export default class VorbisHeader extends CodecHeader {
     header.bitrateMinimum = view.getInt32(24, true);
 
     // Byte (29 of 29)
-    // * `IIII....` Blocksize 0
-    // * `....JJJJ` Blocksize 1
-    header.blocksize0 = blockSizes[(data[28] & 0b11110000) >> 4];
-    header.blocksize1 = blockSizes[data[28] & 0b00001111];
+    // * `IIII....` Blocksize 1
+    // * `....JJJJ` Blocksize 0
+    header.blocksize1 = blockSizes[(data[28] & 0b11110000) >> 4];
+    header.blocksize0 = blockSizes[data[28] & 0b00001111];
 
     header.bitDepth = 16;
     header.bytes = data.subarray(0, header.length);
@@ -140,6 +140,14 @@ export default class VorbisHeader extends CodecHeader {
 
   set codecPrivate(codecPrivate) {
     this._codecPrivate = codecPrivate;
+  }
+
+  get blocksize0() {
+    return this._blocksize0;
+  }
+
+  get blocksize1() {
+    return this._blocksize1;
   }
 
   get codecPrivate() {
