@@ -18,10 +18,23 @@ export default class WEBMContainer {
       case "opus": {
         this._codecId = "A_OPUS";
         this._getCodecSpecificTrack = (header) => [
-          new EBML(id.CodecDelay, { contents: [0x63, 0x2e, 0xa0] }), // OPUS codec delay
-          new EBML(id.SeekPreRoll, { contents: [0x04, 0xc4, 0xb4, 0x00] }), // OPUS seek preroll
+          new EBML(id.CodecDelay, {
+            contents: [
+              ...EBML.getUint32(
+                this._getTimecode(header.preSkip) * this._timecodeScale
+              ),
+            ],
+          }), // OPUS codec delay
+          new EBML(id.SeekPreRoll, {
+            contents: [
+              ...EBML.getUint32(this._getTimecode(3840) * this._timecodeScale),
+            ],
+          }), // OPUS seek preroll 80ms
           new EBML(id.CodecPrivate, { contents: [...header.bytes] }), // OpusHead bytes
         ];
+        this._getTimecode = (sampleNumber) =>
+          (sampleNumber / this._sampleRate) * 1000;
+        this._getTimecodeScale = () => 1000000;
         break;
       }
       case "vorbis": {
@@ -36,27 +49,21 @@ export default class WEBMContainer {
             ],
           }),
         ];
+        this._getTimecode = (sampleNumber) =>
+          Math.round((1000000000 * sampleNumber) / this._sampleRate) /
+          this._timecodeScale;
+        this._getTimecodeScale = () =>
+          Math.floor(1000000000 / this._sampleRate);
         break;
       }
     }
 
     this._sampleNumber = 0;
-    this._timecodeGranularity = 1000000000;
-  }
-
-  calcTimecode(sampleNumber) {
-    return Math.round(
-      Math.round(
-        (this._timecodeGranularity * sampleNumber) / this._sampleRate
-      ) / this._timecodeScale
-    );
   }
 
   getInitializationSegment(header) {
     this._sampleRate = header.sampleRate;
-    this._timecodeScale = Math.floor(
-      this._timecodeGranularity / header.sampleRate
-    );
+    this._timecodeScale = this._getTimecodeScale();
 
     const segment = new EBML(id.Segment, {
       isUnknownLength: true,
@@ -64,7 +71,7 @@ export default class WEBMContainer {
         new EBML(id.Info, {
           children: [
             new EBML(id.TimecodeScale, {
-              contents: [...EBML.getUint32(this._timecodeScale)], //[0x0f, 0x42, 0x40],
+              contents: [...EBML.getUint32(this._timecodeScale)],
             }),
             new EBML(id.MuxingApp, {
               contents: EBML.stringToByteArray("mse-audio-wrapper"),
@@ -116,23 +123,29 @@ export default class WEBMContainer {
       children: [
         new EBML(id.Timecode, {
           contents: [
-            ...EBML.getUintVariable(this.calcTimecode(this._sampleNumber)),
+            ...EBML.getUintVariable(
+              Math.round(this._getTimecode(this._sampleNumber))
+            ),
           ], // Absolute timecode of the cluster
         }),
-        ...frames.map(({ data, header }) => {
-          const block = new EBML(id.SimpleBlock, {
-            contents: [
-              0x81, // track number
-              ...EBML.getInt16(this.calcTimecode(blockSamples)), // timestamp relative to cluster Int16
-              0x80, // No lacing
-              ...data, // ogg page contents
-            ],
-          });
-
-          blockSamples += header.samplesPerFrame;
-
-          return block;
-        }),
+        ...frames.map(
+          ({ data, header }) =>
+            new EBML(id.SimpleBlock, {
+              contents: [
+                0x81, // track number
+                ...EBML.getInt16(
+                  Math.round(
+                    this._getTimecode(
+                      blockSamples,
+                      void (blockSamples += header.samplesPerFrame)
+                    )
+                  )
+                ), // timestamp relative to cluster Int16
+                0x80, // No lacing
+                ...data, // ogg page contents
+              ],
+            })
+        ),
       ],
     }).contents;
 

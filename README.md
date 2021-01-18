@@ -93,6 +93,9 @@ A class that takes in audio (MP3, AAC, Ogg Flac, or Ogg Opus) and outputs fragme
       * `options.minBytesPerSegment` *optional* Minimum audio bytes to store before returning a segment
         * Accepts an integer greater than 0
         * Defaults to `1022`
+      * `options.maxFramesPerSegment` *optional* Maximum audio frames to group in a single segment
+        * Accepts an integer greater than 0
+        * Defaults to `20`
       * `options.preferredContainer` *optional* Preferred output container when there are multiple supported containers
         * Accepts `"webm"`, `"fmp4"`
         * Defaults to `"fmp4"`

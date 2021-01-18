@@ -34,8 +34,9 @@ export default class MSEAudioWrapper {
   constructor(mimeType, options = {}) {
     this._inputMimeType = mimeType;
 
-    this.PREFERRED_CONTAINER = options.preferredContainer || "webm";
+    this.PREFERRED_CONTAINER = options.preferredContainer || "fmp4";
     this.MIN_FRAMES = options.minFramesPerSegment || 4;
+    this.MAX_FRAMES = options.maxFramesPerSegment || 20;
     this.MIN_FRAMES_LENGTH = options.minBytesPerSegment || 1022;
     this._onCodecUpdate = options.onCodecUpdate || (() => {});
 
@@ -82,16 +83,21 @@ export default class MSEAudioWrapper {
 
   /**
    * @private
-   * @description Appends two buffers
+   * @description Appends (n) buffers
    * @param {Uint8Array} buf1
-   * @param {Uint8Array} buf2
+   * @param {Uint8Array} buf[n]
    */
-  static _appendBuffers(buf1, buf2) {
-    const buf = new Uint8Array(buf1.length + buf2.length);
-    buf.set(buf1);
-    buf.set(buf2, buf1.length);
+  static _appendBuffers(...buffers) {
+    const buffer = new Uint8Array(
+      buffers.reduce((acc, buf) => acc + buf.length, 0)
+    );
 
-    return buf;
+    buffers.reduce((offset, buf) => {
+      buf.set(buf, offset);
+      return offset + buf.length;
+    }, 0);
+
+    return buffer;
   }
 
   /**
@@ -149,15 +155,21 @@ export default class MSEAudioWrapper {
 
     // yield the movie box along with a movie fragment containing frames
     let mseData = MSEAudioWrapper._appendBuffers(
-      this._container.getInitializationSegment(frames[0].header),
-      this._container.getMediaSegment(frames)
+      this._container.getInitializationSegment(frames[0][0].header),
+      ...frames.map((frameGroup) => this._container.getMediaSegment(frameGroup))
     );
 
     // yield movie fragments containing frames
     while (true) {
       yield* this._sendReceiveData(mseData);
       frames = this._parseFrames();
-      mseData = frames ? this._container.getMediaSegment(frames) : null;
+      mseData = frames
+        ? MSEAudioWrapper._appendBuffers(
+            ...frames.map((frameGroup) =>
+              this._container.getMediaSegment(frameGroup)
+            )
+          )
+        : null;
     }
   }
 
@@ -193,9 +205,22 @@ export default class MSEAudioWrapper {
       this._frames.reduce((acc, frame) => acc + frame.data.length, 0) >=
         this.MIN_FRAMES_LENGTH
     ) {
-      const frames = this._frames;
-      this._frames = [];
-      return frames;
+      const remainingFrames = this._frames.length % this.MAX_FRAMES;
+
+      const framesToReturn =
+        remainingFrames < this.MIN_FRAMES // store the frames if a group doesn't meet min frames
+          ? this._frames.length - remainingFrames
+          : this._frames.length;
+
+      const groups = [];
+      for (let i = 0; i < framesToReturn; i++) {
+        const index = Math.floor(i / this.MAX_FRAMES);
+
+        if (!groups[index]) groups[index] = [];
+        groups[index].push(this._frames.shift());
+      }
+
+      return groups;
     }
   }
 }

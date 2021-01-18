@@ -84,7 +84,6 @@ export default class VorbisParser extends CodecParser {
           new VorbisFrame(
             segment,
             this._vorbisHead,
-            oggPage.header,
             this._getSamplesPerFrame(segment)
           )
       ),
