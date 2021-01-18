@@ -40,17 +40,31 @@ export default class WEBMContainer {
       }
     }
 
-    this._timestamp = 0;
+    this._sampleNumber = 0;
+    this._timecodeGranularity = 1000000000;
+  }
+
+  calcTimecode(sampleNumber) {
+    return Math.round(
+      Math.round(
+        (this._timecodeGranularity * sampleNumber) / this._sampleRate
+      ) / this._timecodeScale
+    );
   }
 
   getInitializationSegment(header) {
+    this._sampleRate = header.sampleRate;
+    this._timecodeScale = Math.floor(
+      this._timecodeGranularity / header.sampleRate
+    );
+
     const segment = new EBML(id.Segment, {
       isUnknownLength: true,
       children: [
         new EBML(id.Info, {
           children: [
             new EBML(id.TimecodeScale, {
-              contents: [0x0f, 0x42, 0x40],
+              contents: [...EBML.getUint32(this._timecodeScale)], //[0x0f, 0x42, 0x40],
             }),
             new EBML(id.MuxingApp, {
               contents: EBML.stringToByteArray("mse-audio-wrapper"),
@@ -96,31 +110,33 @@ export default class WEBMContainer {
   }
 
   getMediaSegment(frames) {
-    let blockTimestamp = 0;
+    let blockSamples = 0;
 
     const cluster = new EBML(id.Cluster, {
       children: [
         new EBML(id.Timecode, {
-          contents: [...EBML.getUintVariable(this._timestamp)], // Absolute timecode of the cluster
+          contents: [
+            ...EBML.getUintVariable(this.calcTimecode(this._sampleNumber)),
+          ], // Absolute timecode of the cluster
         }),
         ...frames.map(({ data, header }) => {
           const block = new EBML(id.SimpleBlock, {
             contents: [
               0x81, // track number
-              ...EBML.getInt16(blockTimestamp), // timestamp relative to cluster Int16
+              ...EBML.getInt16(this.calcTimecode(blockSamples)), // timestamp relative to cluster Int16
               0x80, // No lacing
               ...data, // ogg page contents
             ],
           });
 
-          blockTimestamp += header.duration * 1000;
+          blockSamples += header.samplesPerFrame;
 
           return block;
         }),
       ],
     }).contents;
 
-    this._timestamp += blockTimestamp;
+    this._sampleNumber += blockSamples;
 
     const data = new Uint8Array(cluster.length);
     data.set(cluster);

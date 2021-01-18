@@ -84,6 +84,7 @@ export default class VorbisParser extends CodecParser {
           new VorbisFrame(
             segment,
             this._vorbisHead,
+            oggPage.header,
             this._getSamplesPerFrame(segment)
           )
       ),
@@ -109,13 +110,14 @@ export default class VorbisParser extends CodecParser {
     const samples = (this._prevBlockSize + this._currBlockSize) >> 2;
     this._prevBlockSize = this._currBlockSize;
 
-    console.log(
+    /*console.log(
       toBinary(byte, 8),
       blockFlag,
       prevWindowBlockFlag,
       nextWindowBlockFlag,
-      samples
-    );
+      samples / 44100 * 1000,
+      Math.round(samples / 44100 * 1000)
+    );*/
 
     return samples;
   }

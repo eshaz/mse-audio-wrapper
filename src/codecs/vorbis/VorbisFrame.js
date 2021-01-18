@@ -19,10 +19,13 @@
 import CodecFrame from "../CodecFrame";
 
 export default class VorbisFrame extends CodecFrame {
-  constructor(data, header, samples) {
+  constructor(data, header, oggPageHeader, samples) {
     if (header) {
       header.dataByteLength = data.length;
       header.duration = samples / header.sampleRate;
+      header.samplesPerFrame = samples;
+
+      console.log(oggPageHeader.absoluteGranulePosition);
     }
 
     super(header, data);

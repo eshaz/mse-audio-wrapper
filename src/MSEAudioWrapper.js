@@ -34,7 +34,7 @@ export default class MSEAudioWrapper {
   constructor(mimeType, options = {}) {
     this._inputMimeType = mimeType;
 
-    this.PREFERRED_CONTAINER = options.preferredContainer || "fmp4";
+    this.PREFERRED_CONTAINER = options.preferredContainer || "webm";
     this.MIN_FRAMES = options.minFramesPerSegment || 4;
     this.MIN_FRAMES_LENGTH = options.minBytesPerSegment || 1022;
     this._onCodecUpdate = options.onCodecUpdate || (() => {});
