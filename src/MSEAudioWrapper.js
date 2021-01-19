@@ -93,7 +93,7 @@ export default class MSEAudioWrapper {
     );
 
     buffers.reduce((offset, buf) => {
-      buf.set(buf, offset);
+      buffer.set(buf, offset);
       return offset + buf.length;
     }, 0);
 
