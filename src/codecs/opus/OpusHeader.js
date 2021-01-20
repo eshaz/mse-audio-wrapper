@@ -188,16 +188,12 @@ export default class OpusHeader extends CodecHeader {
     this._streamCount = header.streamCount;
   }
 
+  get bytes() {
+    return this._bytes;
+  }
+
   set dataByteLength(dataByteLength) {
     this._dataByteLength = dataByteLength;
-  }
-
-  set packet(packet) {
-    this._packet = packet;
-  }
-
-  get packet() {
-    return this._packet;
   }
 
   get channelMappingFamily() {
@@ -206,10 +202,6 @@ export default class OpusHeader extends CodecHeader {
 
   get coupledStreamCount() {
     return this._coupledStreamCount;
-  }
-
-  get bytes() {
-    return this._bytes;
   }
 
   get preSkip() {

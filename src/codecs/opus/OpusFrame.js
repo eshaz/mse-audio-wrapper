@@ -17,6 +17,7 @@
 */
 
 import CodecFrame from "../CodecFrame";
+import OpusHeader from "./OpusHeader";
 
 //  0 1 2 3 4 5 6 7
 // +-+-+-+-+-+-+-+-+
@@ -89,14 +90,18 @@ export default class OpusFrame extends CodecFrame {
   }
 
   constructor(data, header) {
+    let opusHeader = null;
+
     if (header) {
+      opusHeader = new OpusHeader(header, true);
+
       const packet = OpusFrame.getPacket(data);
-      header.packet = packet;
-      header.duration = (packet.config.frameSize * packet.frameCount) / 1000;
-      header.samplesPerFrame = header.duration * header.sampleRate;
-      header.dataByteLength = data.length;
+      opusHeader.samplesPerFrame =
+        ((packet.config.frameSize * packet.frameCount) / 1000) *
+        header.sampleRate;
+      opusHeader.dataByteLength = data.length;
     }
 
-    super(header, data);
+    super(opusHeader, data);
   }
 }

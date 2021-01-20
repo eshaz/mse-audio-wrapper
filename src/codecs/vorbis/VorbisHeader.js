@@ -110,14 +110,14 @@ export default class VorbisHeader extends CodecHeader {
     header.blocksize1 = blockSizes[(data[28] & 0b11110000) >> 4];
     header.blocksize0 = blockSizes[data[28] & 0b00001111];
 
-    header.bitDepth = 16;
+    header.bitDepth = 32;
     header.bytes = data.subarray(0, header.length);
 
     // set header cache
     const { length, bytes, version, ...codecUpdateFields } = header;
 
     headerCache.setHeader(key, header, codecUpdateFields);
-    return new VorbisHeader(header, true);
+    return header;
   }
 
   /**
@@ -132,14 +132,11 @@ export default class VorbisHeader extends CodecHeader {
     this._bitrateMinimum = header.bitrateMinimum;
     this._blocksize0 = header.blocksize0;
     this._blocksize1 = header.blocksize1;
+    this._codecPrivate = header.codecPrivate;
   }
 
   set dataByteLength(dataByteLength) {
     this._dataByteLength = dataByteLength;
-  }
-
-  set codecPrivate(codecPrivate) {
-    this._codecPrivate = codecPrivate;
   }
 
   get blocksize0() {

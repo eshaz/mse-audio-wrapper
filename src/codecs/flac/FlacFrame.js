@@ -17,11 +17,17 @@
 */
 
 import CodecFrame from "../CodecFrame";
+import FlacHeader from "./FlacHeader";
 
 export default class FlacFrame extends CodecFrame {
   constructor(data, header) {
-    if (header) header.dataByteLength = data.length;
+    let flacHeader = null;
 
-    super(header, data);
+    if (header) {
+      flacHeader = new FlacHeader(header, true);
+      flacHeader.dataByteLength = data.length;
+    }
+
+    super(flacHeader, data);
   }
 }

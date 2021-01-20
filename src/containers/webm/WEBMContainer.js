@@ -32,9 +32,6 @@ export default class WEBMContainer {
           }), // OPUS seek preroll 80ms
           new EBML(id.CodecPrivate, { contents: [...header.bytes] }), // OpusHead bytes
         ];
-        this._getTimecode = (sampleNumber) =>
-          (sampleNumber / this._sampleRate) * 1000;
-        this._getTimecodeScale = () => 1000000;
         break;
       }
       case "vorbis": {
@@ -49,11 +46,6 @@ export default class WEBMContainer {
             ],
           }),
         ];
-        this._getTimecode = (sampleNumber) =>
-          Math.round((1000000000 * sampleNumber) / this._sampleRate) /
-          this._timecodeScale;
-        this._getTimecodeScale = () =>
-          Math.floor(1000000000 / this._sampleRate);
         break;
       }
     }
@@ -61,9 +53,12 @@ export default class WEBMContainer {
     this._sampleNumber = 0;
   }
 
+  _getTimecode(sampleNumber) {
+    return (sampleNumber / this._sampleRate) * 1000;
+  }
+
   getInitializationSegment(header) {
     this._sampleRate = header.sampleRate;
-    this._timecodeScale = this._getTimecodeScale();
 
     const segment = new EBML(id.Segment, {
       isUnknownLength: true,
@@ -71,7 +66,7 @@ export default class WEBMContainer {
         new EBML(id.Info, {
           children: [
             new EBML(id.TimecodeScale, {
-              contents: [...EBML.getUint32(this._timecodeScale)],
+              contents: [...EBML.getUint32(1000000)],
             }),
             new EBML(id.MuxingApp, {
               contents: EBML.stringToByteArray("mse-audio-wrapper"),

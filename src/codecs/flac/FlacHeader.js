@@ -49,7 +49,7 @@ L   8   CRC-8 (polynomial = x^8 + x^2 + x^1 + x^0, initialized with 0) of everyt
 
 import CodecHeader from "../CodecHeader";
 import HeaderCache from "../HeaderCache";
-import crc8 from "../crc8";
+import { crc8 } from "../utilities";
 
 const blockingStrategy = {
   0b00000000: "Fixed",
@@ -292,7 +292,7 @@ export default class FlacHeader extends CodecHeader {
       } = header;
       headerCache.setHeader(key, header, codecUpdateFields);
     }
-    return new FlacHeader(header, true);
+    return header;
   }
 
   /**
