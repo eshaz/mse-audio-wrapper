@@ -19,7 +19,7 @@
 import CodecParser from "../CodecParser";
 import VorbisFrame from "./VorbisFrame";
 import VorbisHeader from "./VorbisHeader";
-import { BitReader, reverse } from "../utilities";
+import { BitReader, reverse, logError } from "../utilities";
 
 export default class VorbisParser extends CodecParser {
   constructor(onCodecUpdate) {
@@ -58,8 +58,6 @@ export default class VorbisParser extends CodecParser {
         ...oggPage.header.pageSegmentBytes
       );
 
-      console.log(this._vorbisHead);
-
       return { frames: [], remainingData: 0 };
     }
 
@@ -72,7 +70,6 @@ export default class VorbisParser extends CodecParser {
       }
 
       this._vorbisHead.codecPrivate = this._codecPrivate;
-
       this._mode = this._parseSetupHeader(oggPage.segments[1]);
 
       return { frames: [], remainingData: 0 };
@@ -144,10 +141,10 @@ export default class VorbisParser extends CodecParser {
    * 0 0 0|0 0 0 0 0
    * 0 0 0 0 0 0 0 0
    * 0 0 1|0 0 0 0 0
-   * 
+   *
    * The simplest way to approach this is to start at the end
    * and read backwards to determine the mode configuration.
-   * 
+   *
    * liboggz and ffmpeg both use this method.
    */
   _parseSetupHeader(setup) {
@@ -166,10 +163,10 @@ export default class VorbisParser extends CodecParser {
     while (mode.count < 64 && bitReader.position > 0) {
       const mapping = reverse(bitReader.read(8));
       if (mapping in mode) {
-        console.error(
+        logError(
           "received duplicate mode mapping, failed to parse vorbis modes"
         );
-        break;
+        throw new Error("Failed to read Vorbis stream");
       }
 
       // 16 bits transform type, 16 bits window type, all values must be zero
@@ -182,16 +179,14 @@ export default class VorbisParser extends CodecParser {
         mode[mapping] = modeBits & 0x01; // read and store mode -> block flag mapping
         bitReader.position += 6; // go back 6 bits so next iteration starts right after the block flag
         mode.count++;
-        console.log("mode", mapping, "block_flag", mode[mapping]);
       } else {
         // transform type and window type were not all zeros
         // check for mode count using previous iteration modeBits
-        if (((reverse(modeBits) & 0b01111110) >> 1) + 1 === mode.count) {
-          console.log("got mode header");
-        } else {
-          console.error(
+        if (((reverse(modeBits) & 0b01111110) >> 1) + 1 !== mode.count) {
+          logError(
             "mode count did not match actual modes, failed to parse vorbis modes"
           );
+          throw new Error("Failed to read Vorbis stream");
         }
 
         break;
@@ -202,8 +197,6 @@ export default class VorbisParser extends CodecParser {
     mode.mask = (1 << Math.log2(mode.count)) - 1;
     // previous window flag is the next bit after the mode mask
     mode.prevMask = (mode.mask | 0x1) + 1;
-
-    console.log(mode);
 
     return mode;
   }

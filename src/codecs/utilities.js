@@ -1,3 +1,10 @@
+const logError = (...messages) => {
+  console.error(
+    "mse-audio-wrapper",
+    messages.reduce((acc, message) => acc + "\n  " + message, "")
+  );
+};
+
 // https://pycrc.org/
 
 // prettier-ignore
@@ -30,11 +37,10 @@ const crc8 = (buf) => {
   return crc;
 };
 
-// https://graphics.stanford.edu/~seander/bithacks.html#ReverseByteWith32Bits
+// prettier-ignore
+const reverseTable = [0x0,0x8,0x4,0xc,0x2,0xa,0x6,0xe,0x1,0x9,0x5,0xd,0x3,0xb,0x7,0xf];
 const reverse = (val) =>
-  (((((val * 0x0802) & 0x22110) | ((val * 0x8020) & 0x88440)) * 0x10101) >>
-    16) &
-  0xff;
+  (reverseTable[val & 0b1111] << 4) | reverseTable[val >> 4];
 
 class BitReader {
   constructor(data) {
@@ -62,4 +68,4 @@ class BitReader {
   }
 }
 
-export { crc8, reverse, BitReader };
+export { crc8, reverse, logError, BitReader };

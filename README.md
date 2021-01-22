@@ -4,10 +4,10 @@
 
  * [**API**](#mse-audio-wrapper)
    * [**MSEAudioWrapper**](#MSEAudioWrapper)
-     * Takes in audio (MP3, AAC, Ogg Flac, Ogg Opus, or Ogg Vorbis)
+     * Takes in audio (MP3, AAC, Ogg Flac, Ogg Opus, Ogg Vorbis)
      * Outputs
-       * ISOBMFF (fMP4) (MP3, AAC, Flac, Opus, or Vorbis)
-       * WEBM (Opus)
+       * ISOBMFF (fMP4) (MP3, AAC, Flac, Opus)
+       * WEBM (Opus, Vorbis)
  * [**Demo**](#demo)
    * React application that demonstrates MSEAudioWrapper being used to support `icecast-metadata-js`
    * Checkout the demo [here](https://eshaz.github.io/icecast-metadata-js/)!
@@ -20,7 +20,7 @@
 
 https://github.com/eshaz/mse-audio-wrapper/tree/master/src/MSEAudioWrapper.js
 
-A class that takes in audio (MP3, AAC, Ogg Flac, or Ogg Opus) and outputs fragmented ISOBMFF or WEBM.
+A class that takes in audio (MP3, AAC, Ogg Flac, Ogg Opus, or Ogg Vorbis) and outputs ISOBMFF or WEBM.
 
 ### Usage
 

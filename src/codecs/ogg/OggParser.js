@@ -40,24 +40,38 @@ export default class OggParser extends CodecParser {
     return String.fromCharCode(...bytes).match(matchString);
   }
 
-  setCodec({ data }) {
+  getCodec({ data }) {
     if (this._matchBytes(/\x7fFLAC/, data.subarray(0, 5))) {
-      this._codec = "flac";
       this._parser = new FlacParser(this._onCodecUpdate);
+      return "flac";
     } else if (this._matchBytes(/OpusHead/, data.subarray(0, 8))) {
-      this._codec = "opus";
       this._parser = new OpusParser(this._onCodecUpdate);
+      return "opus";
     } else if (this._matchBytes(/\x01vorbis/, data.subarray(0, 7))) {
-      this._codec = "vorbis";
       this._parser = new VorbisParser(this._onCodecUpdate);
+      return "vorbis";
     }
   }
 
   parseFrames(data) {
     const oggPages = this.fixedLengthFrame(data);
 
-    if (!this._codec && oggPages.frames.length)
-      this.setCodec(oggPages.frames[0]);
+    if (!oggPages.frames.length) {
+      return {
+        frames: [],
+        remainingData: oggPages.remainingData,
+      };
+    }
+
+    if (!this._codec) {
+      this._codec = this.getCodec(oggPages.frames[0]);
+      if (!this._codec) {
+        return {
+          frames: [],
+          remainingData: oggPages.remainingData,
+        };
+      }
+    }
 
     return {
       frames: oggPages.frames.flatMap(

@@ -18,6 +18,7 @@
     "aacp",
     "flac",
     "opus",
+    "vorbis",
     "ogg"
   ],
   "scripts": {
