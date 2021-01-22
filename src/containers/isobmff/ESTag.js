@@ -1,13 +1,13 @@
-/* Copyright 2020 Ethan Halsall
+/* Copyright 2020-2021 Ethan Halsall
     
-    This file is part of isobmff-audio.
+    This file is part of mse-audio-wrapper.
     
-    isobmff-audio is free software: you can redistribute it and/or modify
+    mse-audio-wrapper is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    isobmff-audio is distributed in the hope that it will be useful,
+    mse-audio-wrapper is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU Lesser General Public License for more details.
@@ -16,16 +16,16 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 */
 
-import ISOBMFFObject from "./ISOBMFFObject";
+import ContainerElement from "../ContainerElement";
 
-export default class ESTag extends ISOBMFFObject {
+export default class ESTag extends ContainerElement {
   constructor(tagNumber, { contents = [], tags = [] } = {}) {
     super(tagNumber, contents, tags);
-    this.LENGTH_SIZE = 1;
+    this.MIN_SIZE = 5;
   }
 
   static getLength(length) {
-    let bytes = ISOBMFFObject.getUint32(length);
+    let bytes = ContainerElement.getUint32(length);
 
     bytes.every((byte, i, array) => {
       if (byte === 0x00) {
@@ -52,6 +52,6 @@ export default class ESTag extends ISOBMFFObject {
   }
 
   addTag(tag) {
-    this.addObject(tag);
+    this.addChild(tag);
   }
 }

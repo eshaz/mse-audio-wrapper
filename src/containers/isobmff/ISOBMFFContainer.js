@@ -1,13 +1,13 @@
-/* Copyright 2020 Ethan Halsall
+/* Copyright 2020-2021 Ethan Halsall
     
-    This file is part of isobmff-audio.
+    This file is part of mse-audio-wrapper.
     
-    isobmff-audio is free software: you can redistribute it and/or modify
+    mse-audio-wrapper is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    isobmff-audio is distributed in the hope that it will be useful,
+    mse-audio-wrapper is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU Lesser General Public License for more details.
@@ -16,22 +16,17 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 */
 
-import Box from "./isobmff-object/Box";
-import ESTag from "./isobmff-object/ESTag";
+import { concatBuffers } from "../../utilities";
+import Box from "./Box";
+import ESTag from "./ESTag";
 
 /**
  * @description Fragmented ISO Base Media File Format Builder is a class to
  * wrap codec frames in a MP4 container for streaming MP3 / AAC compatibility in Firefox.
  */
-export default class ISOBMFFBuilder {
-  constructor(mimeType) {
-    this._mimeType = mimeType;
-  }
-
-  static getBoxContents(boxes) {
-    return Uint8Array.from(
-      boxes.reduce((acc, box) => acc.concat(box.contents), [])
-    );
+export default class ISOBMFFContainer {
+  constructor(codec) {
+    this._codec = codec;
   }
 
   getCodecBox(header) {
@@ -44,14 +39,14 @@ export default class ISOBMFFBuilder {
      * 0x69 - MPEG-2 Backward Compatible Audio (MPEG-2 Layers 1, 2, and 3)
      * 0x67 - MPEG-2 AAC LC
      */
-    switch (this._mimeType) {
-      case 'audio/mp4;codecs="mp3"':
+    switch (this._codec) {
+      case "mp3":
         return this.getMp4a(header, 0x6b);
-      case 'audio/mp4;codecs="mp4a.40.2"':
+      case "mp4a.40.2":
         return this.getMp4a(header, 0x40);
-      case 'audio/mp4;codecs="opus"':
+      case "opus":
         return this.getOpus(header);
-      case 'audio/mp4;codecs="flac"':
+      case "flac":
         return this.getFlaC(header);
     }
   }
@@ -65,12 +60,12 @@ export default class ISOBMFFBuilder {
         0x00,0x01, // data reference index
         0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, // reserved
         0x00,header.channels, // channel count
-        0x00,header.sampleSize, // PCM bitrate (16bit)
+        0x00,header.bitDepth, // PCM bitrate (16bit)
         0x00,0x00, // predefined
         0x00,0x00, // reserved
         ...Box.getUint16(header.sampleRate),0x00,0x00, // sample rate 16.16 fixed-point
       ],
-      boxes: [
+      children: [
         new Box("dOps", {
           /* prettier-ignore */
           contents: [0x00, // version
@@ -99,7 +94,7 @@ export default class ISOBMFFBuilder {
         0x00,0x01, // data reference index
         0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, // reserved
         0x00,header.channels, // channel count
-        0x00,header.sampleSize, // PCM bitrate (16bit)
+        0x00,header.bitDepth, // PCM bitrate (16bit)
         0x00,0x00, // predefined
         0x00,0x00, // reserved
         ...Box.getUint16(header.sampleRate),0x00,0x00, // sample rate 16.16 fixed-point
@@ -115,7 +110,7 @@ export default class ISOBMFFBuilder {
         of 65535.0 Hz should be used.
         */
       ],
-      boxes: [
+      children: [
         new Box("dfLa", {
           /* prettier-ignore */
           contents: [0x00, // version
@@ -128,7 +123,7 @@ export default class ISOBMFFBuilder {
             ...Box.getUint16(header.blockSize), // minimum block size
             0x00,0x00,0x00, // maximum frame size
             0x00,0x00,0x00, // minimum frame size
-            ...Box.getUint32((header.sampleRate << 12) | (header.channels << 8) | ((header.sampleSize - 1) << 4)), // 20bits sample rate, 3bits channels, 5bits samplesize - 1
+            ...Box.getUint32((header.sampleRate << 12) | (header.channels << 8) | ((header.bitDepth - 1) << 4)), // 20bits sample rate, 3bits channels, 5bits bitDepth - 1
             0x00,0x00,0x00,0x00, // total samples
             0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00 // md5 of stream
           ],
@@ -168,10 +163,10 @@ export default class ISOBMFFBuilder {
         0x00,0x00, // Compression ID
         0x00,0x00, // Packet size
         ...Box.getUint16(header.sampleRate),0x00,0x00], // sample rate unsigned floating point
-      boxes: [
+      children: [
         new Box("esds", {
           contents: [0x00, 0x00, 0x00, 0x00],
-          boxes: [
+          children: [
             new ESTag(3, {
               contents: [
                 0x00,
@@ -195,7 +190,7 @@ export default class ISOBMFFBuilder {
    * @param {Header} header Codec header
    * @returns {Uint8Array} Filetype and Movie Box information for the codec
    */
-  getMovieBox(header) {
+  getInitializationSegment(header) {
     const sampleRate = Box.getUint32(header.sampleRate);
 
     const boxes = [
@@ -206,7 +201,7 @@ export default class ISOBMFFBuilder {
           ...Box.stringToByteArray("iso6mp41")], // compatible brands
       }),
       new Box("moov", {
-        boxes: [
+        children: [
           new Box("mvhd", {
             /* prettier-ignore */
             contents: [0x00, // version
@@ -230,7 +225,7 @@ export default class ISOBMFFBuilder {
               0x00,0x00,0x00,0x02], // next track
           }),
           new Box("trak", {
-            boxes: [
+            children: [
               new Box("tkhd", {
                 /* prettier-ignore */
                 contents: [0x00, // version
@@ -252,7 +247,7 @@ export default class ISOBMFFBuilder {
                   0x00,0x00,0x00,0x00], // track height
               }),
               new Box("mdia", {
-                boxes: [
+                children: [
                   new Box("mdhd", {
                     /* prettier-ignore */
                     contents: [0x00, // version
@@ -276,16 +271,16 @@ export default class ISOBMFFBuilder {
                       0x00], // String that specifies the name of the component, terminated by a null character
                   }),
                   new Box("minf", {
-                    boxes: [
+                    children: [
                       new Box("stbl", {
-                        boxes: [
+                        children: [
                           new Box("stsd", {
                             // Sample description atom
                             /* prettier-ignore */
                             contents: [0x00, // version
                               0x00,0x00,0x00, // flags
                               0x00,0x00,0x00,0x01], // entry count
-                            boxes: [this.getCodecBox(header)],
+                            children: [this.getCodecBox(header)],
                           }),
                           new Box("stts", {
                             // Time-to-sample atom
@@ -317,13 +312,13 @@ export default class ISOBMFFBuilder {
             ],
           }),
           new Box("mvex", {
-            boxes: [
+            children: [
               new Box("trex", {
                 /* prettier-ignore */
                 contents: [0x00,0x00,0x00,0x00, // flags
                   0x00,0x00,0x00,0x01, // track id
                   0x00,0x00,0x00,0x01, // default_sample_description_index
-                  0x00,0x00,0x00,0x00, // default_sample_duration
+                  ...Box.getUint32(header.samplesPerFrame), // default_sample_duration
                   0x00,0x00,0x00,0x00, // default_sample_size;
                   0x00,0x00,0x00,0x00], // default_sample_flags;
               }),
@@ -333,26 +328,7 @@ export default class ISOBMFFBuilder {
       }),
     ];
 
-    return ISOBMFFBuilder.getBoxContents(boxes);
-  }
-
-  static getMediaDataBox(frames) {
-    let offset = 8;
-    const framesLength =
-      frames.reduce((acc, { data }) => acc + data.length, 0) + offset;
-
-    const frameData = new Uint8Array(framesLength);
-    frameData.set([
-      ...Box.getUint32(framesLength),
-      ...Box.stringToByteArray("mdat"),
-    ]);
-
-    for (const { data } of frames) {
-      frameData.set(data, offset);
-      offset += data.length;
-    }
-
-    return frameData;
+    return concatBuffers(...boxes.map((box) => box.contents));
   }
 
   /**
@@ -360,11 +336,11 @@ export default class ISOBMFFBuilder {
    * @param {Array<Frame>} frames Frames to contain in this Movie Fragment
    * @returns {Uint8Array} Movie Fragment containing the frames
    */
-  wrapFrames(frames) {
+  getMediaSegment(frames) {
     const trun = new Box("trun", {
       /* prettier-ignore */
       contents: [0x00, // version
-        0x00,0x02,0x01, // flags
+        0x00,0b0000010,0b00000001, // flags
         // * `ABCD|00000E0F`
         // * `A...|........` sample‐composition‐time‐offsets‐present
         // * `.B..|........` sample‐flags‐present
@@ -373,24 +349,23 @@ export default class ISOBMFFBuilder {
         // * `....|.....E..` first‐sample‐flags‐present
         // * `....|.......G` data-offset-present
         ...Box.getUint32(frames.length), // number of samples
-        ...frames.flatMap(({data}) => [...Box.getUint32(data.length)]), // samples lengths per frame
+        ...frames.flatMap(({data}) => [...Box.getUint32(data.length)]), // samples size per frame
       ],
     });
 
-    const boxes = [
-      new Box("moof", {
-        boxes: [
-          new Box("mfhd", {
-            /* prettier-ignore */
-            contents: [0x00,0x00,0x00,0x00,
+    const moof = new Box("moof", {
+      children: [
+        new Box("mfhd", {
+          /* prettier-ignore */
+          contents: [0x00,0x00,0x00,0x00,
               0x00,0x00,0x00,0x00], // sequence number
-          }),
-          new Box("traf", {
-            boxes: [
-              new Box("tfhd", {
-                /* prettier-ignore */
-                contents: [0x00, // version
-                  0x02,0x00,0x08, // flags
+        }),
+        new Box("traf", {
+          children: [
+            new Box("tfhd", {
+              /* prettier-ignore */
+              contents: [0x00, // version
+                  0b00000010,0x00,0b00000000, // flags
                   // * `AB|00000000|00CDE0FG`
                   // * `A.|........|........` default-base-is-moof
                   // * `.B|........|........` duration-is-empty
@@ -400,31 +375,30 @@ export default class ISOBMFFBuilder {
                   // * `..|........|......F.` sample-description-index-present
                   // * `..|........|.......G` base-data-offset-present
                   0x00,0x00,0x00,0x01, // track id
-                  ...Box.getUint32(frames[0].header.sampleLength), // default samples per entry
+                 // ...Box.getUint32(frames[0].header.samplesPerFrame), // default-sample-duration
                 ],
-              }),
-              new Box("tfdt", {
-                /* prettier-ignore */
-                contents: [0x00, // version
+            }),
+            new Box("tfdt", {
+              /* prettier-ignore */
+              contents: [0x00, // version
                   0x00,0x00,0x00, // flags
                   0x00,0x00,0x00,0x00], // base media decode time
-              }),
-              trun,
-            ],
-          }),
-        ],
-      }),
-    ];
+            }),
+            trun,
+          ],
+        }),
+      ],
+    });
 
-    trun.insertBytes([...Box.getUint32(boxes[0].length + 12)], 8); // data offset (moof length + mdat length + mdat)
+    trun.insertBytes([...Box.getUint32(moof.length + 12)], 8); // data offset (moof length + mdat length + mdat)
 
-    const moof = ISOBMFFBuilder.getBoxContents(boxes);
-    const mdat = ISOBMFFBuilder.getMediaDataBox(frames);
+    const mdatContents = concatBuffers(...frames.map(({ data }) => data));
 
-    const fragment = new Uint8Array(moof.length + mdat.length);
-    fragment.set(moof);
-    fragment.set(mdat, moof.length);
-
-    return fragment;
+    return concatBuffers(
+      moof.contents,
+      Box.getUint32(mdatContents.length + 8),
+      Box.stringToByteArray("mdat"),
+      mdatContents
+    );
   }
 }
