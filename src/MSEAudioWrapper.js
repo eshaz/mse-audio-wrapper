@@ -16,9 +16,12 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 */
 
+import { concatBuffers } from "./utilities";
+
 import MPEGParser from "./codecs/mpeg/MPEGParser";
 import AACParser from "./codecs/aac/AACParser";
 import OggParser from "./codecs/ogg/OggParser";
+
 import ISOBMFFContainer from "./containers/isobmff/ISOBMFFContainer";
 import WEBMContainer from "./containers/webm/WEBMContainer";
 
@@ -83,25 +86,6 @@ export default class MSEAudioWrapper {
 
   /**
    * @private
-   * @description Appends (n) buffers
-   * @param {Uint8Array} buf1
-   * @param {Uint8Array} buf[n]
-   */
-  static _appendBuffers(...buffers) {
-    const buffer = new Uint8Array(
-      buffers.reduce((acc, buf) => acc + buf.length, 0)
-    );
-
-    buffers.reduce((offset, buf) => {
-      buffer.set(buf, offset);
-      return offset + buf.length;
-    }, 0);
-
-    return buffer;
-  }
-
-  /**
-   * @private
    */
   _getCodecParser() {
     if (this._inputMimeType.match(/aac/)) {
@@ -154,7 +138,7 @@ export default class MSEAudioWrapper {
     this._container = this._getContainer();
 
     // yield the movie box along with a movie fragment containing frames
-    let mseData = MSEAudioWrapper._appendBuffers(
+    let mseData = concatBuffers(
       this._container.getInitializationSegment(frames[0][0].header),
       ...frames.map((frameGroup) => this._container.getMediaSegment(frameGroup))
     );
@@ -164,7 +148,7 @@ export default class MSEAudioWrapper {
       yield* this._sendReceiveData(mseData);
       frames = this._parseFrames();
       mseData = frames
-        ? MSEAudioWrapper._appendBuffers(
+        ? concatBuffers(
             ...frames.map((frameGroup) =>
               this._container.getMediaSegment(frameGroup)
             )
@@ -183,10 +167,7 @@ export default class MSEAudioWrapper {
       codecData = yield;
     }
 
-    this._codecData = MSEAudioWrapper._appendBuffers(
-      this._codecData,
-      codecData
-    );
+    this._codecData = concatBuffers(this._codecData, codecData);
   }
 
   /**

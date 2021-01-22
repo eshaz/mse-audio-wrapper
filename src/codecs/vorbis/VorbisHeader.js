@@ -75,9 +75,7 @@ export default class VorbisHeader extends CodecHeader {
       return null;
     }
 
-    const view = new DataView(
-      Uint8Array.from([...data.subarray(0, 29)]).buffer
-    );
+    const view = new DataView(Uint8Array.of(...data.subarray(0, 29)).buffer);
 
     // Byte (8-11 of 29)
     // * `CCCCCCCC|CCCCCCCC|CCCCCCCC|CCCCCCCC`: Version number

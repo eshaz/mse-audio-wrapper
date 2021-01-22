@@ -16,6 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 */
 
+import { concatBuffers } from "../../utilities";
 import Box from "./Box";
 import ESTag from "./ESTag";
 
@@ -26,12 +27,6 @@ import ESTag from "./ESTag";
 export default class ISOBMFFContainer {
   constructor(codec) {
     this._codec = codec;
-  }
-
-  static getBoxContents(boxes) {
-    return Uint8Array.from(
-      boxes.reduce((acc, box) => acc.concat(box.contents), [])
-    );
   }
 
   getCodecBox(header) {
@@ -333,26 +328,7 @@ export default class ISOBMFFContainer {
       }),
     ];
 
-    return ISOBMFFContainer.getBoxContents(boxes);
-  }
-
-  static getMediaDataBox(frames) {
-    let offset = 8;
-    const framesLength =
-      frames.reduce((acc, { data }) => acc + data.length, 0) + offset;
-
-    const frameData = new Uint8Array(framesLength);
-    frameData.set([
-      ...Box.getUint32(framesLength),
-      ...Box.stringToByteArray("mdat"),
-    ]);
-
-    for (const { data } of frames) {
-      frameData.set(data, offset);
-      offset += data.length;
-    }
-
-    return frameData;
+    return concatBuffers(...boxes.map((box) => box.contents));
   }
 
   /**
@@ -377,19 +353,18 @@ export default class ISOBMFFContainer {
       ],
     });
 
-    const boxes = [
-      new Box("moof", {
-        children: [
-          new Box("mfhd", {
-            /* prettier-ignore */
-            contents: [0x00,0x00,0x00,0x00,
+    const moof = new Box("moof", {
+      children: [
+        new Box("mfhd", {
+          /* prettier-ignore */
+          contents: [0x00,0x00,0x00,0x00,
               0x00,0x00,0x00,0x00], // sequence number
-          }),
-          new Box("traf", {
-            children: [
-              new Box("tfhd", {
-                /* prettier-ignore */
-                contents: [0x00, // version
+        }),
+        new Box("traf", {
+          children: [
+            new Box("tfhd", {
+              /* prettier-ignore */
+              contents: [0x00, // version
                   0b00000010,0x00,0b00000000, // flags
                   // * `AB|00000000|00CDE0FG`
                   // * `A.|........|........` default-base-is-moof
@@ -402,29 +377,28 @@ export default class ISOBMFFContainer {
                   0x00,0x00,0x00,0x01, // track id
                  // ...Box.getUint32(frames[0].header.samplesPerFrame), // default-sample-duration
                 ],
-              }),
-              new Box("tfdt", {
-                /* prettier-ignore */
-                contents: [0x00, // version
+            }),
+            new Box("tfdt", {
+              /* prettier-ignore */
+              contents: [0x00, // version
                   0x00,0x00,0x00, // flags
                   0x00,0x00,0x00,0x00], // base media decode time
-              }),
-              trun,
-            ],
-          }),
-        ],
-      }),
-    ];
+            }),
+            trun,
+          ],
+        }),
+      ],
+    });
 
-    trun.insertBytes([...Box.getUint32(boxes[0].length + 12)], 8); // data offset (moof length + mdat length + mdat)
+    trun.insertBytes([...Box.getUint32(moof.length + 12)], 8); // data offset (moof length + mdat length + mdat)
 
-    const moof = ISOBMFFContainer.getBoxContents(boxes);
-    const mdat = ISOBMFFContainer.getMediaDataBox(frames);
+    const mdatContents = concatBuffers(...frames.map(({ data }) => data));
 
-    const fragment = new Uint8Array(moof.length + mdat.length);
-    fragment.set(moof);
-    fragment.set(mdat, moof.length);
-
-    return fragment;
+    return concatBuffers(
+      moof.contents,
+      Box.getUint32(mdatContents.length + 8),
+      Box.stringToByteArray("mdat"),
+      mdatContents
+    );
   }
 }

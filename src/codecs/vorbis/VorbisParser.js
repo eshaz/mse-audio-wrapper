@@ -19,7 +19,7 @@
 import CodecParser from "../CodecParser";
 import VorbisFrame from "./VorbisFrame";
 import VorbisHeader from "./VorbisHeader";
-import { BitReader, reverse, logError } from "../utilities";
+import { BitReader, reverse, logError } from "../../utilities";
 
 export default class VorbisParser extends CodecParser {
   constructor(onCodecUpdate) {

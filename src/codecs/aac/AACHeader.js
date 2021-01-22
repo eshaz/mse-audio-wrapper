@@ -171,7 +171,7 @@ export default class AACHeader extends CodecHeader {
       // Byte (3,4 of 7)
       // * `.......H|HH......`: MPEG-4 Channel Configuration (in the case of 0, the channel configuration is sent via an inband PCE)
       header.channelModeBits =
-        new DataView(Uint8Array.from([data[2], data[3]]).buffer).getUint16() &
+        new DataView(Uint8Array.of(data[2], data[3]).buffer).getUint16() &
         0b111000000;
       header.channelMode = channelMode[header.channelModeBits].description;
       header.channels = channelMode[header.channelModeBits].channels;
@@ -200,7 +200,7 @@ export default class AACHeader extends CodecHeader {
     // * `.......MM|MMMMMMMM|MMM.....`: frame length, this value must include 7 or 9 bytes of header length: FrameLength = (ProtectionAbsent == 1 ? 7 : 9) + size(AACFrame)
     const frameLengthBits =
       new DataView(
-        Uint8Array.from([0x00, data[3], data[4], data[5]]).buffer
+        Uint8Array.of(0x00, data[3], data[4], data[5]).buffer
       ).getUint32() & 0x3ffe0;
     header.dataByteLength = frameLengthBits >> 5;
     if (!header.dataByteLength) return null;
@@ -208,8 +208,7 @@ export default class AACHeader extends CodecHeader {
     // Byte (6,7 of 7)
     // * `...OOOOO|OOOOOO..`: Buffer fullness
     const bufferFullnessBits =
-      new DataView(Uint8Array.from([data[5], data[6]]).buffer).getUint16() &
-      0x1ffc;
+      new DataView(Uint8Array.of(data[5], data[6]).buffer).getUint16() & 0x1ffc;
     header.bufferFullness =
       bufferFullnessBits === 0x1ffc ? "VBR" : bufferFullnessBits >> 2;
 

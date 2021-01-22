@@ -102,6 +102,7 @@ export default class EBML extends ContainerElement {
   }
 }
 
+// https://tools.ietf.org/id/draft-lhomme-cellar-matroska-00.html
 export const id = {
   AlphaMode: [0x53, 0xc0],
   AspectRatioType: [0x54, 0xb3],

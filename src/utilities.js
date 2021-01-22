@@ -37,6 +37,19 @@ const crc8 = (buf) => {
   return crc;
 };
 
+const concatBuffers = (...buffers) => {
+  const buffer = new Uint8Array(
+    buffers.reduce((acc, buf) => acc + buf.length, 0)
+  );
+
+  buffers.reduce((offset, buf) => {
+    buffer.set(buf, offset);
+    return offset + buf.length;
+  }, 0);
+
+  return buffer;
+};
+
 // prettier-ignore
 const reverseTable = [0x0,0x8,0x4,0xc,0x2,0xa,0x6,0xe,0x1,0x9,0x5,0xd,0x3,0xb,0x7,0xf];
 const reverse = (val) =>
@@ -68,4 +81,4 @@ class BitReader {
   }
 }
 
-export { crc8, reverse, logError, BitReader };
+export { crc8, reverse, logError, concatBuffers, BitReader };

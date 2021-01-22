@@ -59,9 +59,7 @@ export default class OggPageHeader {
     // Must be at least 28 bytes.
     if (data.length < 28) return new OggPageHeader(header, false);
 
-    const view = new DataView(
-      Uint8Array.from([...data.subarray(0, 28)]).buffer
-    );
+    const view = new DataView(Uint8Array.of(...data.subarray(0, 28)).buffer);
 
     // Bytes (1-4 of 28)
     // Frame sync (must equal OggS): `AAAAAAAA|AAAAAAAA|AAAAAAAA|AAAAAAAA`:

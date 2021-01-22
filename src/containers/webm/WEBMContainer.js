@@ -1,3 +1,4 @@
+import { concatBuffers } from "../../utilities";
 import EBML, { id } from "./EBML";
 
 const EBML_HEADER = new EBML(id.EBML, {
@@ -104,11 +105,7 @@ export default class WEBMContainer {
       ],
     }).contents;
 
-    const buffer = new Uint8Array(EBML_HEADER.length + segment.length);
-    buffer.set(EBML_HEADER);
-    buffer.set(segment, EBML_HEADER.length);
-
-    return buffer;
+    return concatBuffers(EBML_HEADER, segment);
   }
 
   getMediaSegment(frames) {
