@@ -16,6 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 */
 
+import { logError } from "../../utilities";
 import ContainerElement from "../ContainerElement";
 
 export default class EBML extends ContainerElement {
@@ -43,34 +44,34 @@ export default class EBML extends ContainerElement {
   static getUintVariable(number) {
     let buffer;
 
-    if (number < 2 ** 7 - 1) {
+    if (number < 0x7f) {
       buffer = [0b10000000 | number];
-    }
-    if (number < 2 ** 14 - 1) {
+    } else if (number < 0x3fff) {
       buffer = ContainerElement.getUint16(number);
       buffer[0] |= 0b01000000;
-    } else if (number < 2 ** 21 - 1) {
+    } else if (number < 0x1fffff) {
       buffer = ContainerElement.getUint32(number).subarray(1);
       buffer[0] |= 0b00100000;
-    } else if (number < 2 ** 28 - 1) {
+    } else if (number < 0xfffffff) {
       buffer = ContainerElement.getUint32(number);
       buffer[0] |= 0b00010000;
-    } else if (number < 2 ** 35 - 1) {
+    } else if (number < 0x7ffffffff) {
       buffer = ContainerElement.getUint64(number).subarray(3);
       buffer[0] |= 0b00001000;
-    } else if (number < 2 ** 42 - 1) {
+    } else if (number < 0x3ffffffffff) {
       buffer = ContainerElement.getUint64(number).subarray(2);
       buffer[0] |= 0b00000100;
-    } else if (number < 2 ** 49 - 1) {
+    } else if (number < 0x1ffffffffffff) {
       buffer = ContainerElement.getUint64(number).subarray(1);
       buffer[0] |= 0b00000010;
-    } else if (number < 2 ** 56 - 1) {
+    } else if (number < 0xffffffffffffff) {
       buffer = ContainerElement.getUint64(number);
       buffer[0] |= 0b00000001;
     } else if (typeof number !== "number" || isNaN(number)) {
-      throw new Error(
-        `mse-audio-wrapper: EBML Variable integer must be a number, instead received ${number}`
+      logError(
+        `EBML Variable integer must be a number, instead received ${number}`
       );
+      throw new Error("mse-audio-wrapper: Unable to encode WEBM");
     }
 
     return buffer;
