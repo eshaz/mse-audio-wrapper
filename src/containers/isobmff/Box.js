@@ -31,8 +31,6 @@ export default class Box extends ContainerElement {
   }
 
   _buildContents() {
-    this._buildLength();
-
     return [
       ...this._lengthBytes,
       ...ContainerElement.stringToByteArray(this._name),

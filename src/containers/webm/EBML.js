@@ -75,8 +75,6 @@ export default class EBML extends ContainerElement {
   }
 
   _buildContents() {
-    this._buildLength();
-
     return [...this._name, ...this._lengthBytes, ...super._buildContents()];
   }
 

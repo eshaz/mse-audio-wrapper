@@ -108,8 +108,8 @@ export default class ContainerElement {
    * @returns {Uint8Array} Contents of this container element
    */
   get contents() {
-    const contents = this._buildContents();
     const buffer = new Uint8Array(this.length);
+    const contents = this._buildContents();
 
     let offset = 0;
 
