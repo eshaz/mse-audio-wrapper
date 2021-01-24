@@ -21,7 +21,7 @@ export default class ContainerElement {
    * @abstract
    * @description ISO Base Media File Format Object structure Abstract Class
    * @param {any} name Name of the object
-   * @param {Array<Uint8>} [contents] Array of bytes to insert into this box
+   * @param {Array<Uint8>} [contents] Array of arrays or typed arrays, or a single number or typed array
    * @param {Array<ContainerElement>} [objects] Array of objects to insert into this object
    */
   constructor(name, contents, objects) {
@@ -96,21 +96,14 @@ export default class ContainerElement {
     return bytes;
   }
 
-  static flatten(array) {
-    let length = 0;
-
-    function* flatten(array) {
-      for (const item of array) {
-        if (Array.isArray(item)) {
-          yield* flatten(item);
-        } else {
-          length += item.length === undefined ? 1 : item.length;
-          yield item;
-        }
+  static *flatten(array) {
+    for (const item of array) {
+      if (Array.isArray(item)) {
+        yield* ContainerElement.flatten(item);
+      } else {
+        yield item;
       }
     }
-
-    return { data: [...flatten(array)], length };
   }
 
   /**
@@ -119,7 +112,7 @@ export default class ContainerElement {
   get contents() {
     const array = [[]];
 
-    for (const element of this._buildContents().data) {
+    for (const element of ContainerElement.flatten(this._buildContents())) {
       if (typeof element !== "object") {
         array[array.length - 1].push(element);
       } else {
@@ -132,10 +125,27 @@ export default class ContainerElement {
   }
 
   _buildContents() {
-    return ContainerElement.flatten([
+    return [
       this._contents,
-      this._objects.map((obj) => obj._buildContents().data),
-    ]);
+      ...this._objects.map((obj) => obj._buildContents()),
+    ];
+  }
+
+  _buildLength() {
+    let length;
+
+    if (Array.isArray(this._contents)) {
+      length = this._contents.reduce(
+        (acc, val) => acc + (val.length === undefined ? 1 : val.length),
+        0
+      );
+    } else {
+      length = this._contents.length === undefined ? 1 : this._contents.length;
+    }
+
+    return (
+      length + this._objects.reduce((acc, obj) => acc + obj._buildLength(), 0)
+    );
   }
 
   addChild(object) {

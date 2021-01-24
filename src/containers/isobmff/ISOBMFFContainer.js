@@ -357,7 +357,7 @@ export default class ISOBMFFContainer {
                 // * `..|........|....E...` default-sample-duration-present
                 // * `..|........|......F.` sample-description-index-present
                 // * `..|........|.......G` base-data-offset-present
-                0x00,0x00,0x00,0x01] // track id
+                0x00,0x00,0x00,0x01], // track id
             }),
             new Box("tfdt", {
               /* prettier-ignore */
@@ -378,7 +378,7 @@ export default class ISOBMFFContainer {
                 // * `....|.......G` data-offset-present
                 Box.getUint32(frames.length), // number of samples
                 Box.getUint32(92 + frames.length * 4), // data offset
-                ...frames.map(({data}) => Box.getUint32(data.length))] // samples size per frame
+                ...frames.map(({data}) => Box.getUint32(data.length))], // samples size per frame
             }),
           ],
         }),

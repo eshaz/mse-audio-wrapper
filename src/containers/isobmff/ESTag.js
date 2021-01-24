@@ -42,13 +42,14 @@ export default class ESTag extends ContainerElement {
    * @returns {Uint8Array} Contents of this stream descriptor tag
    */
   _buildContents() {
-    const contents = super._buildContents();
+    return [this._name, ...this._lengthBytes, ...super._buildContents()];
+  }
 
-    const data = [this._name, ...ESTag.getLength(contents.length)].concat(
-      contents.data
-    );
+  _buildLength() {
+    const length = super._buildLength();
+    this._lengthBytes = ESTag.getLength(length);
 
-    return { data, length: data.length };
+    return 1 + length + this._lengthBytes.length;
   }
 
   addTag(tag) {

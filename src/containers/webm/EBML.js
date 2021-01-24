@@ -78,17 +78,18 @@ export default class EBML extends ContainerElement {
   }
 
   _buildContents() {
-    const contents = super._buildContents();
+    this._buildLength();
 
-    const data = this._name
-      .concat(
-        this._isUnknownLength
-          ? [0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff] // unknown length constant
-          : [...EBML.getUintVariable(contents.length)]
-      )
-      .concat(contents.data);
+    return [...this._name, ...this._lengthBytes, ...super._buildContents()];
+  }
 
-    return { data, length: data.length };
+  _buildLength() {
+    this._contentLength = super._buildLength();
+    this._lengthBytes = this._isUnknownLength
+      ? [0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff] // unknown length constant
+      : EBML.getUintVariable(this._contentLength);
+
+    return this._name.length + this._lengthBytes.length + this._contentLength;
   }
 }
 

@@ -28,19 +28,24 @@ export default class Box extends ContainerElement {
    */
   constructor(name, { contents = [], children = [] } = {}) {
     super(name, contents, children);
-
-    this.MIN_SIZE = 4 + name.length;
   }
 
   _buildContents() {
-    const contents = super._buildContents();
+    this._buildLength();
 
-    const data = [
-      ...ContainerElement.getUint32(this.MIN_SIZE + contents.length),
-    ]
-      .concat(ContainerElement.stringToByteArray(this._name))
-      .concat(contents.data);
+    return [
+      ...this._lengthBytes,
+      ...ContainerElement.stringToByteArray(this._name),
+      ...super._buildContents(),
+    ];
+  }
 
-    return { data, length: data.length };
+  _buildLength() {
+    // length bytes + name length + content length
+    const length = 4 + this._name.length + super._buildLength();
+
+    this._lengthBytes = ContainerElement.getUint32(length);
+
+    return length;
   }
 }
