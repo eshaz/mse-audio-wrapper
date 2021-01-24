@@ -21,7 +21,7 @@ import ContainerElement from "../ContainerElement";
 
 export default class EBML extends ContainerElement {
   /**
-   * @description ISO/IEC 14496-12 Part 12 ISO Base Media File Format Box
+   * @description Extensible Binary Meta Language element
    * @param {name} name ID of the EBML element
    * @param {object} params Object containing contents or children
    * @param {boolean} [isUnknownLength] Set to true to use the unknown length constant for EBML
@@ -84,12 +84,16 @@ export default class EBML extends ContainerElement {
   }
 
   _buildLength() {
-    this._contentLength = super._buildLength();
-    this._lengthBytes = this._isUnknownLength
-      ? [0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff] // unknown length constant
-      : EBML.getUintVariable(this._contentLength);
+    if (!this._length) {
+      this._contentLength = super._buildLength();
+      this._lengthBytes = this._isUnknownLength
+        ? [0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff] // unknown length constant
+        : EBML.getUintVariable(this._contentLength);
+      this._length =
+        this._name.length + this._lengthBytes.length + this._contentLength;
+    }
 
-    return this._name.length + this._lengthBytes.length + this._contentLength;
+    return this._length;
   }
 }
 

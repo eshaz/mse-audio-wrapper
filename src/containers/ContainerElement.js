@@ -19,7 +19,7 @@
 export default class ContainerElement {
   /**
    * @abstract
-   * @description ISO Base Media File Format Object structure Abstract Class
+   * @description Container Object structure Abstract Class
    * @param {any} name Name of the object
    * @param {Array<Uint8>} [contents] Array of arrays or typed arrays, or a single number or typed array
    * @param {Array<ContainerElement>} [objects] Array of objects to insert into this object
@@ -28,8 +28,6 @@ export default class ContainerElement {
     this._name = name;
     this._contents = contents;
     this._objects = objects;
-
-    this.MIN_SIZE = 0;
   }
 
   /**
@@ -107,7 +105,7 @@ export default class ContainerElement {
   }
 
   /**
-   * @returns {Array<Uint8>} Contents of this EBML tag
+   * @returns {Array<Array<number> | Uint8Array>} Contents of this container element
    */
   get contents() {
     const array = [[]];
@@ -122,6 +120,13 @@ export default class ContainerElement {
     }
 
     return array;
+  }
+
+  /**
+   * @returns {number} Length of this container element
+   */
+  get length() {
+    return this._buildLength();
   }
 
   _buildContents() {
@@ -143,9 +148,7 @@ export default class ContainerElement {
       length = this._contents.length === undefined ? 1 : this._contents.length;
     }
 
-    return (
-      length + this._objects.reduce((acc, obj) => acc + obj._buildLength(), 0)
-    );
+    return length + this._objects.reduce((acc, obj) => acc + obj.length, 0);
   }
 
   addChild(object) {

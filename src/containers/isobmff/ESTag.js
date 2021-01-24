@@ -25,7 +25,7 @@ export default class ESTag extends ContainerElement {
   }
 
   static getLength(length) {
-    let bytes = ContainerElement.getUint32(length);
+    const bytes = ContainerElement.getUint32(length);
 
     bytes.every((byte, i, array) => {
       if (byte === 0x00) {
@@ -46,10 +46,13 @@ export default class ESTag extends ContainerElement {
   }
 
   _buildLength() {
-    const length = super._buildLength();
-    this._lengthBytes = ESTag.getLength(length);
+    if (!this._length) {
+      const length = super._buildLength();
+      this._lengthBytes = ESTag.getLength(length);
+      this._length = 1 + length + this._lengthBytes.length;
+    }
 
-    return 1 + length + this._lengthBytes.length;
+    return this._length;
   }
 
   addTag(tag) {

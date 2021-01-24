@@ -41,11 +41,12 @@ export default class Box extends ContainerElement {
   }
 
   _buildLength() {
-    // length bytes + name length + content length
-    const length = 4 + this._name.length + super._buildLength();
+    if (!this._length) {
+      // length bytes + name length + content length
+      this._length = 4 + this._name.length + super._buildLength();
+      this._lengthBytes = ContainerElement.getUint32(this._length);
+    }
 
-    this._lengthBytes = ContainerElement.getUint32(length);
-
-    return length;
+    return this._length;
   }
 }
