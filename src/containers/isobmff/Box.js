@@ -32,14 +32,15 @@ export default class Box extends ContainerElement {
     this.MIN_SIZE = 4 + name.length;
   }
 
-  /**
-   * @returns {Array<Uint8>} Contents of this box
-   */
-  get contents() {
-    const contents = super.contents;
+  _buildContents() {
+    const contents = super._buildContents();
 
-    return [...ContainerElement.getUint32(this.MIN_SIZE + contents.length)]
+    const data = [
+      ...ContainerElement.getUint32(this.MIN_SIZE + contents.length),
+    ]
       .concat(ContainerElement.stringToByteArray(this._name))
-      .concat(contents);
+      .concat(contents.data);
+
+    return { data, length: data.length };
   }
 }

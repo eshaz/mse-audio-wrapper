@@ -96,40 +96,46 @@ export default class ContainerElement {
     return bytes;
   }
 
+  static flatten(array) {
+    let length = 0;
+
+    function* flatten(array) {
+      for (const item of array) {
+        if (Array.isArray(item)) {
+          yield* flatten(item);
+        } else {
+          length += item.length === undefined ? 1 : item.length;
+          yield item;
+        }
+      }
+    }
+
+    return { data: [...flatten(array)], length };
+  }
+
+  /**
+   * @returns {Array<Uint8>} Contents of this EBML tag
+   */
   get contents() {
-    return this._contents.concat(
-      this._objects.reduce((acc, obj) => acc.concat(obj.contents), [])
-    );
+    const array = [[]];
+
+    for (const element of this._buildContents().data) {
+      if (typeof element !== "object") {
+        array[array.length - 1].push(element);
+      } else {
+        array.push(element);
+        array.push([]);
+      }
+    }
+
+    return array;
   }
 
-  /**
-   * @returns {number} Total length of this object and all contents
-   */
-  get length() {
-    return this._objects.reduce(
-      (acc, obj) => acc + obj.length,
-      this._contents.length + this.MIN_SIZE
-    );
-  }
-
-  /**
-   * @description Inserts bytes into the contents of this object
-   * @param {Array<Uint>} data Bytes to insert
-   * @param {number} index Position to insert bytes
-   */
-  insertBytes(data, index) {
-    this._contents = this._contents
-      .slice(0, index)
-      .concat(data)
-      .concat(this._contents.slice(index));
-  }
-
-  /**
-   * @description Appends data to the end of the contents of this box
-   * @param {Array<Uint>} data Bytes to append
-   */
-  appendBytes(data) {
-    this._contents = this._contents.concat(data);
+  _buildContents() {
+    return ContainerElement.flatten([
+      this._contents,
+      this._objects.map((obj) => obj._buildContents().data),
+    ]);
   }
 
   addChild(object) {

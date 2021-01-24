@@ -41,14 +41,14 @@ export default class ESTag extends ContainerElement {
   /**
    * @returns {Uint8Array} Contents of this stream descriptor tag
    */
-  get contents() {
-    const contents = super.contents;
+  _buildContents() {
+    const contents = super._buildContents();
 
-    /* prettier-ignore */
-    return [
-      this._name,
-      ...ESTag.getLength(contents.length),
-    ].concat(contents);
+    const data = [this._name, ...ESTag.getLength(contents.length)].concat(
+      contents.data
+    );
+
+    return { data, length: data.length };
   }
 
   addTag(tag) {

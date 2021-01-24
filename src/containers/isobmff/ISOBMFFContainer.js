@@ -63,21 +63,21 @@ export default class ISOBMFFContainer {
         0x00,header.bitDepth, // PCM bitrate (16bit)
         0x00,0x00, // predefined
         0x00,0x00, // reserved
-        ...Box.getUint16(header.sampleRate),0x00,0x00, // sample rate 16.16 fixed-point
+        Box.getUint16(header.sampleRate),0x00,0x00, // sample rate 16.16 fixed-point
       ],
       children: [
         new Box("dOps", {
           /* prettier-ignore */
           contents: [0x00, // version
             header.channels, // output channel count
-            ...Box.getUint16(header.preSkip), // pre skip
-            ...Box.getUint32(header.inputSampleRate),// input sample rate
-            ...Box.getInt16(header.outputGain), // output gain
+            Box.getUint16(header.preSkip), // pre skip
+            Box.getUint32(header.inputSampleRate),// input sample rate
+            Box.getInt16(header.outputGain), // output gain
             header.channelMappingFamily, // channel mapping family int(8)
-            ...(header.channelMappingFamily !== 0 ? [
+            (header.channelMappingFamily !== 0 ? [
               header.streamCount,
               header.coupledStreamCount,
-              ...header.channelMappingTable // channel mapping table
+              header.channelMappingTable // channel mapping table
             ] : [])
           ],
         }),
@@ -97,7 +97,7 @@ export default class ISOBMFFContainer {
         0x00,header.bitDepth, // PCM bitrate (16bit)
         0x00,0x00, // predefined
         0x00,0x00, // reserved
-        ...Box.getUint16(header.sampleRate),0x00,0x00, // sample rate 16.16 fixed-point
+        Box.getUint16(header.sampleRate),0x00,0x00, // sample rate 16.16 fixed-point
         /*
         When the bitstream's native sample rate is greater
         than the maximum expressible value of 65535 Hz,
@@ -119,11 +119,11 @@ export default class ISOBMFFContainer {
             // * `.BBBBBBBB` BlockType
             0x80, // last metadata block, stream info
             0x00,0x00,0x22, // Length
-            ...Box.getUint16(header.blockSize), // maximum block size
-            ...Box.getUint16(header.blockSize), // minimum block size
+            Box.getUint16(header.blockSize), // maximum block size
+            Box.getUint16(header.blockSize), // minimum block size
             0x00,0x00,0x00, // maximum frame size
             0x00,0x00,0x00, // minimum frame size
-            ...Box.getUint32((header.sampleRate << 12) | (header.channels << 8) | ((header.bitDepth - 1) << 4)), // 20bits sample rate, 3bits channels, 5bits bitDepth - 1
+            Box.getUint32((header.sampleRate << 12) | (header.channels << 8) | ((header.bitDepth - 1) << 4)), // 20bits sample rate, 3bits channels, 5bits bitDepth - 1
             0x00,0x00,0x00,0x00, // total samples
             0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00 // md5 of stream
           ],
@@ -148,7 +148,7 @@ export default class ISOBMFFContainer {
     if (esdsCodec === 0x40) {
       streamDescriptorTag.addTag(
         new ESTag(5, {
-          contents: [...header.audioSpecificConfig],
+          contents: header.audioSpecificConfig,
         })
       );
     }
@@ -162,7 +162,7 @@ export default class ISOBMFFContainer {
         0x00,0x10, // PCM bitrate (16bit)
         0x00,0x00, // Compression ID
         0x00,0x00, // Packet size
-        ...Box.getUint16(header.sampleRate),0x00,0x00], // sample rate unsigned floating point
+        Box.getUint16(header.sampleRate),0x00,0x00], // sample rate unsigned floating point
       children: [
         new Box("esds", {
           contents: [0x00, 0x00, 0x00, 0x00],
@@ -176,7 +176,7 @@ export default class ISOBMFFContainer {
               tags: [
                 streamDescriptorTag,
                 new ESTag(6, {
-                  contents: [0x02],
+                  contents: 0x02,
                 }),
               ],
             }),
@@ -196,9 +196,9 @@ export default class ISOBMFFContainer {
     const boxes = [
       new Box("ftyp", {
         /* prettier-ignore */
-        contents: [...Box.stringToByteArray("iso5"), // major brand
+        contents: [Box.stringToByteArray("iso5"), // major brand
           0x00,0x00,0x02,0x00, // minor version
-          ...Box.stringToByteArray("iso6mp41")], // compatible brands
+          Box.stringToByteArray("iso6mp41")], // compatible brands
       }),
       new Box("moov", {
         children: [
@@ -254,7 +254,7 @@ export default class ISOBMFFContainer {
                       0x00,0x00,0x00, // flags
                       0x00,0x00,0x00,0x00, // creation time (in seconds since midnight, January 1, 1904)
                       0x00,0x00,0x00,0x00, // modification time
-                      ...sampleRate, // time scale
+                      sampleRate, // time scale
                       0x00,0x00,0x00,0x00, // duration
                       0x55,0xc4, // language
                       0x00,0x00], // quality
@@ -263,8 +263,8 @@ export default class ISOBMFFContainer {
                     /* prettier-ignore */
                     contents: [0x00, // version
                       0x00,0x00,0x00, // flags
-                      ...Box.stringToByteArray('mhlr'), // component type (mhlr, dhlr)
-                      ...Box.stringToByteArray('soun'), // component subtype (vide' for video data, 'soun' for sound data or ‘subt’ for subtitles)
+                      Box.stringToByteArray('mhlr'), // component type (mhlr, dhlr)
+                      Box.stringToByteArray('soun'), // component subtype (vide' for video data, 'soun' for sound data or ‘subt’ for subtitles)
                       0x00,0x00,0x00,0x00, // component manufacturer
                       0x00,0x00,0x00,0x00, // component flags
                       0x00,0x00,0x00,0x00, // component flags mask
@@ -318,7 +318,7 @@ export default class ISOBMFFContainer {
                 contents: [0x00,0x00,0x00,0x00, // flags
                   0x00,0x00,0x00,0x01, // track id
                   0x00,0x00,0x00,0x01, // default_sample_description_index
-                  ...Box.getUint32(header.samplesPerFrame), // default_sample_duration
+                  Box.getUint32(header.samplesPerFrame), // default_sample_duration
                   0x00,0x00,0x00,0x00, // default_sample_size;
                   0x00,0x00,0x00,0x00], // default_sample_flags;
               }),
@@ -328,7 +328,7 @@ export default class ISOBMFFContainer {
       }),
     ];
 
-    return concatBuffers(...boxes.map((box) => box.contents));
+    return concatBuffers(...boxes.flatMap((box) => box.contents));
   }
 
   /**
@@ -337,68 +337,58 @@ export default class ISOBMFFContainer {
    * @returns {Uint8Array} Movie Fragment containing the frames
    */
   getMediaSegment(frames) {
-    const trun = new Box("trun", {
-      /* prettier-ignore */
-      contents: [0x00, // version
-        0x00,0b0000010,0b00000001, // flags
-        // * `ABCD|00000E0F`
-        // * `A...|........` sample‐composition‐time‐offsets‐present
-        // * `.B..|........` sample‐flags‐present
-        // * `..C.|........` sample‐size‐present
-        // * `...D|........` sample‐duration‐present
-        // * `....|.....E..` first‐sample‐flags‐present
-        // * `....|.......G` data-offset-present
-        ...Box.getUint32(frames.length), // number of samples
-        ...frames.flatMap(({data}) => [...Box.getUint32(data.length)]), // samples size per frame
-      ],
-    });
-
     const moof = new Box("moof", {
       children: [
         new Box("mfhd", {
           /* prettier-ignore */
-          contents: [0x00,0x00,0x00,0x00,
-              0x00,0x00,0x00,0x00], // sequence number
+          contents: [0x00,0x00,0x00,0x00, 0x00,0x00,0x00,0x00], // sequence number
         }),
         new Box("traf", {
           children: [
             new Box("tfhd", {
               /* prettier-ignore */
               contents: [0x00, // version
-                  0b00000010,0x00,0b00000000, // flags
-                  // * `AB|00000000|00CDE0FG`
-                  // * `A.|........|........` default-base-is-moof
-                  // * `.B|........|........` duration-is-empty
-                  // * `..|........|..C.....` default-sample-flags-present
-                  // * `..|........|...D....` default-sample-size-present
-                  // * `..|........|....E...` default-sample-duration-present
-                  // * `..|........|......F.` sample-description-index-present
-                  // * `..|........|.......G` base-data-offset-present
-                  0x00,0x00,0x00,0x01, // track id
-                 // ...Box.getUint32(frames[0].header.samplesPerFrame), // default-sample-duration
-                ],
+                0b00000010,0x00,0b00000000, // flags
+                // * `AB|00000000|00CDE0FG`
+                // * `A.|........|........` default-base-is-moof
+                // * `.B|........|........` duration-is-empty
+                // * `..|........|..C.....` default-sample-flags-present
+                // * `..|........|...D....` default-sample-size-present
+                // * `..|........|....E...` default-sample-duration-present
+                // * `..|........|......F.` sample-description-index-present
+                // * `..|........|.......G` base-data-offset-present
+                0x00,0x00,0x00,0x01] // track id
             }),
             new Box("tfdt", {
               /* prettier-ignore */
               contents: [0x00, // version
-                  0x00,0x00,0x00, // flags
-                  0x00,0x00,0x00,0x00], // base media decode time
+                0x00,0x00,0x00, // flags
+                0x00,0x00,0x00,0x00], // base media decode time
             }),
-            trun,
+            new Box("trun", {
+              /* prettier-ignore */
+              contents: [0x00, // version
+                0x00,0b0000010,0b00000001, // flags
+                // * `ABCD|00000E0F`
+                // * `A...|........` sample‐composition‐time‐offsets‐present
+                // * `.B..|........` sample‐flags‐present
+                // * `..C.|........` sample‐size‐present
+                // * `...D|........` sample‐duration‐present
+                // * `....|.....E..` first‐sample‐flags‐present
+                // * `....|.......G` data-offset-present
+                Box.getUint32(frames.length), // number of samples
+                Box.getUint32(92 + frames.length * 4), // data offset
+                ...frames.map(({data}) => Box.getUint32(data.length))] // samples size per frame
+            }),
           ],
         }),
       ],
     });
 
-    trun.insertBytes([...Box.getUint32(moof.length + 12)], 8); // data offset (moof length + mdat length + mdat)
+    const mdat = new Box("mdat", {
+      contents: frames.map(({ data }) => data),
+    });
 
-    const mdatContents = concatBuffers(...frames.map(({ data }) => data));
-
-    return concatBuffers(
-      moof.contents,
-      Box.getUint32(mdatContents.length + 8),
-      Box.stringToByteArray("mdat"),
-      mdatContents
-    );
+    return concatBuffers(...moof.contents, ...mdat.contents);
   }
 }
