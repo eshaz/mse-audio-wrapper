@@ -28,11 +28,8 @@ export default class EBML extends ContainerElement {
    * @param {Array<Uint8>} [params.contents] Array of bytes to insert into this box
    * @param {Array<Box>} [params.children] Array of children to insert into this box
    */
-  constructor(
-    name,
-    { contents = [], children = [], isUnknownLength = false } = {}
-  ) {
-    super(name, contents, children);
+  constructor(name, { contents, children, isUnknownLength = false } = {}) {
+    super({ name, contents, children });
 
     this._isUnknownLength = isUnknownLength;
   }

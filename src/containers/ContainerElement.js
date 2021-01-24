@@ -24,10 +24,10 @@ export default class ContainerElement {
    * @param {Array<Uint8>} [contents] Array of arrays or typed arrays, or a single number or typed array
    * @param {Array<ContainerElement>} [objects] Array of objects to insert into this object
    */
-  constructor(name, contents, objects) {
+  constructor({ name, contents = [], children = [] }) {
     this._name = name;
     this._contents = contents;
-    this._objects = objects;
+    this._children = children;
   }
 
   /**
@@ -105,21 +105,25 @@ export default class ContainerElement {
   }
 
   /**
-   * @returns {Array<Array<number> | Uint8Array>} Contents of this container element
+   * @returns {Uint8Array} Contents of this container element
    */
   get contents() {
-    const array = [[]];
+    const contents = this._buildContents();
+    const buffer = new Uint8Array(this.length);
 
-    for (const element of ContainerElement.flatten(this._buildContents())) {
+    let offset = 0;
+
+    for (const element of ContainerElement.flatten(contents)) {
       if (typeof element !== "object") {
-        array[array.length - 1].push(element);
+        buffer[offset] = element;
+        offset++;
       } else {
-        array.push(element);
-        array.push([]);
+        buffer.set(element, offset);
+        offset += element.length;
       }
     }
 
-    return array;
+    return buffer;
   }
 
   /**
@@ -132,7 +136,7 @@ export default class ContainerElement {
   _buildContents() {
     return [
       this._contents,
-      ...this._objects.map((obj) => obj._buildContents()),
+      ...this._children.map((obj) => obj._buildContents()),
     ];
   }
 
@@ -148,10 +152,10 @@ export default class ContainerElement {
       length = this._contents.length === undefined ? 1 : this._contents.length;
     }
 
-    return length + this._objects.reduce((acc, obj) => acc + obj.length, 0);
+    return length + this._children.reduce((acc, obj) => acc + obj.length, 0);
   }
 
   addChild(object) {
-    this._objects.push(object);
+    this._children.push(object);
   }
 }

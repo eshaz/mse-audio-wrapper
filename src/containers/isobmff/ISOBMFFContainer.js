@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 */
 
-import { concatBuffers } from "../../utilities";
+import ContainerElement from "../ContainerElement";
 import Box from "./Box";
 import ESTag from "./ESTag";
 
@@ -191,144 +191,142 @@ export default class ISOBMFFContainer {
    * @returns {Uint8Array} Filetype and Movie Box information for the codec
    */
   getInitializationSegment(header) {
-    const sampleRate = Box.getUint32(header.sampleRate);
-
-    const boxes = [
-      new Box("ftyp", {
-        /* prettier-ignore */
-        contents: [Box.stringToByteArray("iso5"), // major brand
-          0x00,0x00,0x02,0x00, // minor version
-          Box.stringToByteArray("iso6mp41")], // compatible brands
-      }),
-      new Box("moov", {
-        children: [
-          new Box("mvhd", {
-            /* prettier-ignore */
-            contents: [0x00, // version
-              0x00,0x00,0x00, // flags
-              0x00,0x00,0x00,0x00, // creation time
-              0x00,0x00,0x00,0x00, // modification time
-              0x00,0x00,0x03,0xe8, // timescale
-              0x00,0x00,0x00,0x00, // duration
-              0x00,0x01,0x00,0x00, // rate
-              0x01,0x00, // volume
-              0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, // reserved
-              0x00,0x01,0x00,0x00, 0x00,0x00,0x00,0x00, 0x00,0x00,0x00,0x00, // a b u (matrix structure)
-              0x00,0x00,0x00,0x00, 0x00,0x01,0x00,0x00, 0x00,0x00,0x00,0x00, // c d v
-              0x00,0x00,0x00,0x00, 0x00,0x00,0x00,0x00, 0x40,0x00,0x00,0x00, // x y w
-              0x00,0x00,0x00,0x00, // preview time
-              0x00,0x00,0x00,0x00, // preview duration
-              0x00,0x00,0x00,0x00, // poster time
-              0x00,0x00,0x00,0x00, // selection time
-              0x00,0x00,0x00,0x00, // selection duration
-              0x00,0x00,0x00,0x00, // current time
-              0x00,0x00,0x00,0x02], // next track
-          }),
-          new Box("trak", {
-            children: [
-              new Box("tkhd", {
-                /* prettier-ignore */
-                contents: [0x00, // version
-                  0x00,0x00,0x03, // flags (0x01 - track enabled, 0x02 - track in movie, 0x04 - track in preview, 0x08 - track in poster)
-                  0x00,0x00,0x00,0x00, // creation time
-                  0x00,0x00,0x00,0x00, // modification time
-                  0x00,0x00,0x00,0x01, // track id
-                  0x00,0x00,0x00,0x00, // reserved
-                  0x00,0x00,0x00,0x00, // duration
-                  0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, // reserved
-                  0x00,0x00, // layer
-                  0x00,0x01, // alternate group
-                  0x01,0x00, // volume
-                  0x00,0x00, // reserved
-                  0x00,0x01,0x00,0x00, 0x00,0x00,0x00,0x00, 0x00,0x00,0x00,0x00, // a b u (matrix structure)
-                  0x00,0x00,0x00,0x00, 0x00,0x01,0x00,0x00, 0x00,0x00,0x00,0x00, // c d v 
-                  0x00,0x00,0x00,0x00, 0x00,0x00,0x00,0x00, 0x40,0x00,0x00,0x00, // x y w
-                  0x00,0x00,0x00,0x00, // track width
-                  0x00,0x00,0x00,0x00], // track height
-              }),
-              new Box("mdia", {
-                children: [
-                  new Box("mdhd", {
-                    /* prettier-ignore */
-                    contents: [0x00, // version
-                      0x00,0x00,0x00, // flags
-                      0x00,0x00,0x00,0x00, // creation time (in seconds since midnight, January 1, 1904)
-                      0x00,0x00,0x00,0x00, // modification time
-                      sampleRate, // time scale
-                      0x00,0x00,0x00,0x00, // duration
-                      0x55,0xc4, // language
-                      0x00,0x00], // quality
-                  }),
-                  new Box("hdlr", {
-                    /* prettier-ignore */
-                    contents: [0x00, // version
-                      0x00,0x00,0x00, // flags
-                      Box.stringToByteArray('mhlr'), // component type (mhlr, dhlr)
-                      Box.stringToByteArray('soun'), // component subtype (vide' for video data, 'soun' for sound data or ‘subt’ for subtitles)
-                      0x00,0x00,0x00,0x00, // component manufacturer
-                      0x00,0x00,0x00,0x00, // component flags
-                      0x00,0x00,0x00,0x00, // component flags mask
-                      0x00], // String that specifies the name of the component, terminated by a null character
-                  }),
-                  new Box("minf", {
-                    children: [
-                      new Box("stbl", {
-                        children: [
-                          new Box("stsd", {
-                            // Sample description atom
-                            /* prettier-ignore */
-                            contents: [0x00, // version
-                              0x00,0x00,0x00, // flags
-                              0x00,0x00,0x00,0x01], // entry count
-                            children: [this.getCodecBox(header)],
-                          }),
-                          new Box("stts", {
-                            // Time-to-sample atom
-                            /* prettier-ignore */
-                            contents: [0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00],
-                          }),
-                          new Box("stsc", {
-                            // Sample-to-chunk atom
-                            /* prettier-ignore */
-                            contents: [0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00],
-                          }),
-                          new Box("stsz", {
-                            // Sample Size atom
-                            /* prettier-ignore */
-                            contents: [0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-                              0x00,0x00,0x00,0x00],
-                          }),
-                          new Box("stco", {
-                            // Chunk Offset atom
-                            /* prettier-ignore */
-                            contents: [0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00],
-                          }),
-                        ],
-                      }),
-                    ],
-                  }),
-                ],
-              }),
-            ],
-          }),
-          new Box("mvex", {
-            children: [
-              new Box("trex", {
-                /* prettier-ignore */
-                contents: [0x00,0x00,0x00,0x00, // flags
-                  0x00,0x00,0x00,0x01, // track id
-                  0x00,0x00,0x00,0x01, // default_sample_description_index
-                  Box.getUint32(header.samplesPerFrame), // default_sample_duration
-                  0x00,0x00,0x00,0x00, // default_sample_size;
-                  0x00,0x00,0x00,0x00], // default_sample_flags;
-              }),
-            ],
-          }),
-        ],
-      }),
-    ];
-
-    return concatBuffers(...boxes.flatMap((box) => box.contents));
+    return new ContainerElement({
+      children: [
+        new Box("ftyp", {
+          /* prettier-ignore */
+          contents: [Box.stringToByteArray("iso5"), // major brand
+            0x00,0x00,0x02,0x00, // minor version
+            Box.stringToByteArray("iso6mp41")], // compatible brands
+        }),
+        new Box("moov", {
+          children: [
+            new Box("mvhd", {
+              /* prettier-ignore */
+              contents: [0x00, // version
+                0x00,0x00,0x00, // flags
+                0x00,0x00,0x00,0x00, // creation time
+                0x00,0x00,0x00,0x00, // modification time
+                0x00,0x00,0x03,0xe8, // timescale
+                0x00,0x00,0x00,0x00, // duration
+                0x00,0x01,0x00,0x00, // rate
+                0x01,0x00, // volume
+                0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, // reserved
+                0x00,0x01,0x00,0x00, 0x00,0x00,0x00,0x00, 0x00,0x00,0x00,0x00, // a b u (matrix structure)
+                0x00,0x00,0x00,0x00, 0x00,0x01,0x00,0x00, 0x00,0x00,0x00,0x00, // c d v
+                0x00,0x00,0x00,0x00, 0x00,0x00,0x00,0x00, 0x40,0x00,0x00,0x00, // x y w
+                0x00,0x00,0x00,0x00, // preview time
+                0x00,0x00,0x00,0x00, // preview duration
+                0x00,0x00,0x00,0x00, // poster time
+                0x00,0x00,0x00,0x00, // selection time
+                0x00,0x00,0x00,0x00, // selection duration
+                0x00,0x00,0x00,0x00, // current time
+                0x00,0x00,0x00,0x02], // next track
+            }),
+            new Box("trak", {
+              children: [
+                new Box("tkhd", {
+                  /* prettier-ignore */
+                  contents: [0x00, // version
+                    0x00,0x00,0x03, // flags (0x01 - track enabled, 0x02 - track in movie, 0x04 - track in preview, 0x08 - track in poster)
+                    0x00,0x00,0x00,0x00, // creation time
+                    0x00,0x00,0x00,0x00, // modification time
+                    0x00,0x00,0x00,0x01, // track id
+                    0x00,0x00,0x00,0x00, // reserved
+                    0x00,0x00,0x00,0x00, // duration
+                    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, // reserved
+                    0x00,0x00, // layer
+                    0x00,0x01, // alternate group
+                    0x01,0x00, // volume
+                    0x00,0x00, // reserved
+                    0x00,0x01,0x00,0x00, 0x00,0x00,0x00,0x00, 0x00,0x00,0x00,0x00, // a b u (matrix structure)
+                    0x00,0x00,0x00,0x00, 0x00,0x01,0x00,0x00, 0x00,0x00,0x00,0x00, // c d v 
+                    0x00,0x00,0x00,0x00, 0x00,0x00,0x00,0x00, 0x40,0x00,0x00,0x00, // x y w
+                    0x00,0x00,0x00,0x00, // track width
+                    0x00,0x00,0x00,0x00], // track height
+                }),
+                new Box("mdia", {
+                  children: [
+                    new Box("mdhd", {
+                      /* prettier-ignore */
+                      contents: [0x00, // version
+                        0x00,0x00,0x00, // flags
+                        0x00,0x00,0x00,0x00, // creation time (in seconds since midnight, January 1, 1904)
+                        0x00,0x00,0x00,0x00, // modification time
+                        Box.getUint32(header.sampleRate), // time scale
+                        0x00,0x00,0x00,0x00, // duration
+                        0x55,0xc4, // language
+                        0x00,0x00], // quality
+                    }),
+                    new Box("hdlr", {
+                      /* prettier-ignore */
+                      contents: [0x00, // version
+                        0x00,0x00,0x00, // flags
+                        Box.stringToByteArray('mhlr'), // component type (mhlr, dhlr)
+                        Box.stringToByteArray('soun'), // component subtype (vide' for video data, 'soun' for sound data or ‘subt’ for subtitles)
+                        0x00,0x00,0x00,0x00, // component manufacturer
+                        0x00,0x00,0x00,0x00, // component flags
+                        0x00,0x00,0x00,0x00, // component flags mask
+                        0x00], // String that specifies the name of the component, terminated by a null character
+                    }),
+                    new Box("minf", {
+                      children: [
+                        new Box("stbl", {
+                          children: [
+                            new Box("stsd", {
+                              // Sample description atom
+                              /* prettier-ignore */
+                              contents: [0x00, // version
+                                0x00,0x00,0x00, // flags
+                                0x00,0x00,0x00,0x01], // entry count
+                              children: [this.getCodecBox(header)],
+                            }),
+                            new Box("stts", {
+                              // Time-to-sample atom
+                              /* prettier-ignore */
+                              contents: [0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00],
+                            }),
+                            new Box("stsc", {
+                              // Sample-to-chunk atom
+                              /* prettier-ignore */
+                              contents: [0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00],
+                            }),
+                            new Box("stsz", {
+                              // Sample Size atom
+                              /* prettier-ignore */
+                              contents: [0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+                                0x00,0x00,0x00,0x00],
+                            }),
+                            new Box("stco", {
+                              // Chunk Offset atom
+                              /* prettier-ignore */
+                              contents: [0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00],
+                            }),
+                          ],
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            new Box("mvex", {
+              children: [
+                new Box("trex", {
+                  /* prettier-ignore */
+                  contents: [0x00,0x00,0x00,0x00, // flags
+                    0x00,0x00,0x00,0x01, // track id
+                    0x00,0x00,0x00,0x01, // default_sample_description_index
+                    Box.getUint32(header.samplesPerFrame), // default_sample_duration
+                    0x00,0x00,0x00,0x00, // default_sample_size;
+                    0x00,0x00,0x00,0x00], // default_sample_flags;
+                }),
+              ],
+            }),
+          ],
+        }),
+      ],
+    }).contents;
   }
 
   /**
@@ -337,58 +335,59 @@ export default class ISOBMFFContainer {
    * @returns {Uint8Array} Movie Fragment containing the frames
    */
   getMediaSegment(frames) {
-    const moof = new Box("moof", {
+    return new ContainerElement({
       children: [
-        new Box("mfhd", {
-          /* prettier-ignore */
-          contents: [0x00,0x00,0x00,0x00, 0x00,0x00,0x00,0x00], // sequence number
-        }),
-        new Box("traf", {
+        new Box("moof", {
           children: [
-            new Box("tfhd", {
+            new Box("mfhd", {
               /* prettier-ignore */
-              contents: [0x00, // version
-                0b00000010,0x00,0b00000000, // flags
-                // * `AB|00000000|00CDE0FG`
-                // * `A.|........|........` default-base-is-moof
-                // * `.B|........|........` duration-is-empty
-                // * `..|........|..C.....` default-sample-flags-present
-                // * `..|........|...D....` default-sample-size-present
-                // * `..|........|....E...` default-sample-duration-present
-                // * `..|........|......F.` sample-description-index-present
-                // * `..|........|.......G` base-data-offset-present
-                0x00,0x00,0x00,0x01], // track id
+              contents: [0x00,0x00,0x00,0x00, 0x00,0x00,0x00,0x00], // sequence number
             }),
-            new Box("tfdt", {
-              /* prettier-ignore */
-              contents: [0x00, // version
-                0x00,0x00,0x00, // flags
-                0x00,0x00,0x00,0x00], // base media decode time
-            }),
-            new Box("trun", {
-              /* prettier-ignore */
-              contents: [0x00, // version
-                0x00,0b0000010,0b00000001, // flags
-                // * `ABCD|00000E0F`
-                // * `A...|........` sample‐composition‐time‐offsets‐present
-                // * `.B..|........` sample‐flags‐present
-                // * `..C.|........` sample‐size‐present
-                // * `...D|........` sample‐duration‐present
-                // * `....|.....E..` first‐sample‐flags‐present
-                // * `....|.......G` data-offset-present
-                Box.getUint32(frames.length), // number of samples
-                Box.getUint32(92 + frames.length * 4), // data offset
-                ...frames.map(({data}) => Box.getUint32(data.length))], // samples size per frame
+            new Box("traf", {
+              children: [
+                new Box("tfhd", {
+                  /* prettier-ignore */
+                  contents: [0x00, // version
+                    0b00000010,0x00,0b00000000, // flags
+                    // * `AB|00000000|00CDE0FG`
+                    // * `A.|........|........` default-base-is-moof
+                    // * `.B|........|........` duration-is-empty
+                    // * `..|........|..C.....` default-sample-flags-present
+                    // * `..|........|...D....` default-sample-size-present
+                    // * `..|........|....E...` default-sample-duration-present
+                    // * `..|........|......F.` sample-description-index-present
+                    // * `..|........|.......G` base-data-offset-present
+                    0x00,0x00,0x00,0x01], // track id
+                }),
+                new Box("tfdt", {
+                  /* prettier-ignore */
+                  contents: [0x00, // version
+                    0x00,0x00,0x00, // flags
+                    0x00,0x00,0x00,0x00], // base media decode time
+                }),
+                new Box("trun", {
+                  /* prettier-ignore */
+                  contents: [0x00, // version
+                    0x00,0b0000010,0b00000001, // flags
+                    // * `ABCD|00000E0F`
+                    // * `A...|........` sample‐composition‐time‐offsets‐present
+                    // * `.B..|........` sample‐flags‐present
+                    // * `..C.|........` sample‐size‐present
+                    // * `...D|........` sample‐duration‐present
+                    // * `....|.....E..` first‐sample‐flags‐present
+                    // * `....|.......G` data-offset-present
+                    Box.getUint32(frames.length), // number of samples
+                    Box.getUint32(92 + frames.length * 4), // data offset
+                    ...frames.map(({data}) => Box.getUint32(data.length))], // samples size per frame
+                }),
+              ],
             }),
           ],
         }),
+        new Box("mdat", {
+          contents: frames.map(({ data }) => data),
+        }),
       ],
-    });
-
-    const mdat = new Box("mdat", {
-      contents: frames.map(({ data }) => data),
-    });
-
-    return concatBuffers(...moof.contents, ...mdat.contents);
+    }).contents;
   }
 }

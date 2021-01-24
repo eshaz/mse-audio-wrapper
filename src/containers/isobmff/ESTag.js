@@ -19,9 +19,8 @@
 import ContainerElement from "../ContainerElement";
 
 export default class ESTag extends ContainerElement {
-  constructor(tagNumber, { contents = [], tags = [] } = {}) {
-    super(tagNumber, contents, tags);
-    this.MIN_SIZE = 5;
+  constructor(tagNumber, { contents, tags } = {}) {
+    super({ name: tagNumber, contents, children: tags });
   }
 
   static getLength(length) {

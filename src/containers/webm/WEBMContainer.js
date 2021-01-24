@@ -16,20 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 */
 
-import { concatBuffers } from "../../utilities";
+import ContainerElement from "../ContainerElement";
 import EBML, { id } from "./EBML";
-
-const EBML_HEADER = new EBML(id.EBML, {
-  children: [
-    new EBML(id.EBMLVersion, { contents: 1 }),
-    new EBML(id.EBMLReadVersion, { contents: 1 }),
-    new EBML(id.EBMLMaxIDLength, { contents: 4 }),
-    new EBML(id.EBMLMaxSizeLength, { contents: 8 }),
-    new EBML(id.DocType, { contents: EBML.stringToByteArray("webm") }),
-    new EBML(id.DocTypeVersion, { contents: 4 }),
-    new EBML(id.DocTypeReadVersion, { contents: 2 }),
-  ],
-}).contents;
 
 export default class WEBMContainer {
   constructor(codec) {
@@ -77,53 +65,64 @@ export default class WEBMContainer {
   getInitializationSegment(header) {
     this._sampleRate = header.sampleRate;
 
-    const segment = new EBML(id.Segment, {
-      isUnknownLength: true,
+    return new ContainerElement({
       children: [
-        new EBML(id.Info, {
+        new EBML(id.EBML, {
           children: [
-            new EBML(id.TimecodeScale, {
-              contents: EBML.getUint32(1000000),
-            }),
-            new EBML(id.MuxingApp, {
-              contents: EBML.stringToByteArray("mse-audio-wrapper"),
-            }),
-            new EBML(id.WritingApp, {
-              contents: EBML.stringToByteArray("mse-audio-wrapper"),
-            }),
+            new EBML(id.EBMLVersion, { contents: 1 }),
+            new EBML(id.EBMLReadVersion, { contents: 1 }),
+            new EBML(id.EBMLMaxIDLength, { contents: 4 }),
+            new EBML(id.EBMLMaxSizeLength, { contents: 8 }),
+            new EBML(id.DocType, { contents: EBML.stringToByteArray("webm") }),
+            new EBML(id.DocTypeVersion, { contents: 4 }),
+            new EBML(id.DocTypeReadVersion, { contents: 2 }),
           ],
         }),
-        new EBML(id.Tracks, {
+        new EBML(id.Segment, {
+          isUnknownLength: true,
           children: [
-            new EBML(id.TrackEntry, {
+            new EBML(id.Info, {
               children: [
-                new EBML(id.TrackNumber, { contents: 0x01 }),
-                new EBML(id.TrackUID, { contents: 0x01 }),
-                new EBML(id.FlagLacing, { contents: 0x00 }),
-                new EBML(id.CodecID, {
-                  contents: EBML.stringToByteArray(this._codecId),
+                new EBML(id.TimecodeScale, {
+                  contents: EBML.getUint32(1000000),
                 }),
-                new EBML(id.TrackType, { contents: 0x02 }), // audio
-                new EBML(id.Audio, {
+                new EBML(id.MuxingApp, {
+                  contents: EBML.stringToByteArray("mse-audio-wrapper"),
+                }),
+                new EBML(id.WritingApp, {
+                  contents: EBML.stringToByteArray("mse-audio-wrapper"),
+                }),
+              ],
+            }),
+            new EBML(id.Tracks, {
+              children: [
+                new EBML(id.TrackEntry, {
                   children: [
-                    new EBML(id.Channels, { contents: header.channels }),
-                    new EBML(id.SamplingFrequency, {
-                      contents: EBML.getFloat64(header.sampleRate),
+                    new EBML(id.TrackNumber, { contents: 0x01 }),
+                    new EBML(id.TrackUID, { contents: 0x01 }),
+                    new EBML(id.FlagLacing, { contents: 0x00 }),
+                    new EBML(id.CodecID, {
+                      contents: EBML.stringToByteArray(this._codecId),
                     }),
-                    new EBML(id.BitDepth, { contents: header.bitDepth }),
+                    new EBML(id.TrackType, { contents: 0x02 }), // audio
+                    new EBML(id.Audio, {
+                      children: [
+                        new EBML(id.Channels, { contents: header.channels }),
+                        new EBML(id.SamplingFrequency, {
+                          contents: EBML.getFloat64(header.sampleRate),
+                        }),
+                        new EBML(id.BitDepth, { contents: header.bitDepth }),
+                      ],
+                    }),
+                    ...this._getCodecSpecificTrack(header),
                   ],
                 }),
-                ...this._getCodecSpecificTrack(header),
               ],
             }),
           ],
         }),
       ],
     }).contents;
-
-    const data = concatBuffers(...EBML_HEADER, ...segment);
-
-    return data;
   }
 
   getMediaSegment(frames) {
@@ -155,10 +154,10 @@ export default class WEBMContainer {
             })
         ),
       ],
-    }).contents;
+    });
 
     this._sampleNumber += blockSamples;
 
-    return concatBuffers(...cluster);
+    return cluster.contents;
   }
 }
