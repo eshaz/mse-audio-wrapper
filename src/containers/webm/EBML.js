@@ -21,18 +21,15 @@ import ContainerElement from "../ContainerElement";
 
 export default class EBML extends ContainerElement {
   /**
-   * @description ISO/IEC 14496-12 Part 12 ISO Base Media File Format Box
+   * @description Extensible Binary Meta Language element
    * @param {name} name ID of the EBML element
    * @param {object} params Object containing contents or children
    * @param {boolean} [isUnknownLength] Set to true to use the unknown length constant for EBML
    * @param {Array<Uint8>} [params.contents] Array of bytes to insert into this box
    * @param {Array<Box>} [params.children] Array of children to insert into this box
    */
-  constructor(
-    name,
-    { contents = [], children = [], isUnknownLength = false } = {}
-  ) {
-    super(name, contents, children);
+  constructor(name, { contents, children, isUnknownLength = false } = {}) {
+    super({ name, contents, children });
 
     this._isUnknownLength = isUnknownLength;
   }
@@ -77,29 +74,21 @@ export default class EBML extends ContainerElement {
     return buffer;
   }
 
-  /**
-   * @returns {number} Total length of this object and all contents
-   */
-  get length() {
-    const length = super.length;
-
-    return length + EBML.getUintVariable(length).length;
+  _buildContents() {
+    return [...this._name, ...this._lengthBytes, ...super._buildContents()];
   }
 
-  /**
-   * @returns {Array<Uint8>} Contents of this EBML tag
-   */
-  get contents() {
-    const contents = super.contents;
+  _buildLength() {
+    if (!this._length) {
+      this._contentLength = super._buildLength();
+      this._lengthBytes = this._isUnknownLength
+        ? [0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff] // unknown length constant
+        : EBML.getUintVariable(this._contentLength);
+      this._length =
+        this._name.length + this._lengthBytes.length + this._contentLength;
+    }
 
-    // prettier-ignore
-    return this._name
-      .concat(
-        this._isUnknownLength
-          ? [0x01,0xff,0xff,0xff,0xff,0xff,0xff,0xff] // unknown length constant
-          : [...EBML.getUintVariable(contents.length)]
-      )
-      .concat(contents);
+    return this._length;
   }
 }
 

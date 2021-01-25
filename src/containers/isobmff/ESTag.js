@@ -19,13 +19,12 @@
 import ContainerElement from "../ContainerElement";
 
 export default class ESTag extends ContainerElement {
-  constructor(tagNumber, { contents = [], tags = [] } = {}) {
-    super(tagNumber, contents, tags);
-    this.MIN_SIZE = 5;
+  constructor(tagNumber, { contents, tags } = {}) {
+    super({ name: tagNumber, contents, children: tags });
   }
 
   static getLength(length) {
-    let bytes = ContainerElement.getUint32(length);
+    const bytes = ContainerElement.getUint32(length);
 
     bytes.every((byte, i, array) => {
       if (byte === 0x00) {
@@ -41,14 +40,18 @@ export default class ESTag extends ContainerElement {
   /**
    * @returns {Uint8Array} Contents of this stream descriptor tag
    */
-  get contents() {
-    const contents = super.contents;
+  _buildContents() {
+    return [this._name, ...this._lengthBytes, ...super._buildContents()];
+  }
 
-    /* prettier-ignore */
-    return [
-      this._name,
-      ...ESTag.getLength(contents.length),
-    ].concat(contents);
+  _buildLength() {
+    if (!this._length) {
+      const length = super._buildLength();
+      this._lengthBytes = ESTag.getLength(length);
+      this._length = 1 + length + this._lengthBytes.length;
+    }
+
+    return this._length;
   }
 
   addTag(tag) {

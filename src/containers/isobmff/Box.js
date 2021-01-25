@@ -26,20 +26,25 @@ export default class Box extends ContainerElement {
    * @param {Array<Uint8>} [params.contents] Array of bytes to insert into this box
    * @param {Array<Box>} [params.children] Array of child boxes to insert into this box
    */
-  constructor(name, { contents = [], children = [] } = {}) {
-    super(name, contents, children);
-
-    this.MIN_SIZE = 4 + name.length;
+  constructor(name, { contents, children } = {}) {
+    super({ name, contents, children });
   }
 
-  /**
-   * @returns {Array<Uint8>} Contents of this box
-   */
-  get contents() {
-    const contents = super.contents;
+  _buildContents() {
+    return [
+      ...this._lengthBytes,
+      ...ContainerElement.stringToByteArray(this._name),
+      ...super._buildContents(),
+    ];
+  }
 
-    return [...ContainerElement.getUint32(this.MIN_SIZE + contents.length)]
-      .concat(ContainerElement.stringToByteArray(this._name))
-      .concat(contents);
+  _buildLength() {
+    if (!this._length) {
+      // length bytes + name length + content length
+      this._length = 4 + this._name.length + super._buildLength();
+      this._lengthBytes = ContainerElement.getUint32(this._length);
+    }
+
+    return this._length;
   }
 }

@@ -19,17 +19,15 @@
 export default class ContainerElement {
   /**
    * @abstract
-   * @description ISO Base Media File Format Object structure Abstract Class
+   * @description Container Object structure Abstract Class
    * @param {any} name Name of the object
-   * @param {Array<Uint8>} [contents] Array of bytes to insert into this box
+   * @param {Array<Uint8>} [contents] Array of arrays or typed arrays, or a single number or typed array
    * @param {Array<ContainerElement>} [objects] Array of objects to insert into this object
    */
-  constructor(name, contents, objects) {
+  constructor({ name, contents = [], children = [] }) {
     this._name = name;
     this._contents = contents;
-    this._objects = objects;
-
-    this.MIN_SIZE = 0;
+    this._children = children;
   }
 
   /**
@@ -96,43 +94,68 @@ export default class ContainerElement {
     return bytes;
   }
 
-  get contents() {
-    return this._contents.concat(
-      this._objects.reduce((acc, obj) => acc.concat(obj.contents), [])
-    );
+  static *flatten(array) {
+    for (const item of array) {
+      if (Array.isArray(item)) {
+        yield* ContainerElement.flatten(item);
+      } else {
+        yield item;
+      }
+    }
   }
 
   /**
-   * @returns {number} Total length of this object and all contents
+   * @returns {Uint8Array} Contents of this container element
+   */
+  get contents() {
+    const buffer = new Uint8Array(this.length);
+    const contents = this._buildContents();
+
+    let offset = 0;
+
+    for (const element of ContainerElement.flatten(contents)) {
+      if (typeof element !== "object") {
+        buffer[offset] = element;
+        offset++;
+      } else {
+        buffer.set(element, offset);
+        offset += element.length;
+      }
+    }
+
+    return buffer;
+  }
+
+  /**
+   * @returns {number} Length of this container element
    */
   get length() {
-    return this._objects.reduce(
-      (acc, obj) => acc + obj.length,
-      this._contents.length + this.MIN_SIZE
-    );
+    return this._buildLength();
   }
 
-  /**
-   * @description Inserts bytes into the contents of this object
-   * @param {Array<Uint>} data Bytes to insert
-   * @param {number} index Position to insert bytes
-   */
-  insertBytes(data, index) {
-    this._contents = this._contents
-      .slice(0, index)
-      .concat(data)
-      .concat(this._contents.slice(index));
+  _buildContents() {
+    return [
+      this._contents,
+      ...this._children.map((obj) => obj._buildContents()),
+    ];
   }
 
-  /**
-   * @description Appends data to the end of the contents of this box
-   * @param {Array<Uint>} data Bytes to append
-   */
-  appendBytes(data) {
-    this._contents = this._contents.concat(data);
+  _buildLength() {
+    let length;
+
+    if (Array.isArray(this._contents)) {
+      length = this._contents.reduce(
+        (acc, val) => acc + (val.length === undefined ? 1 : val.length),
+        0
+      );
+    } else {
+      length = this._contents.length === undefined ? 1 : this._contents.length;
+    }
+
+    return length + this._children.reduce((acc, obj) => acc + obj.length, 0);
   }
 
   addChild(object) {
-    this._objects.push(object);
+    this._children.push(object);
   }
 }
