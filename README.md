@@ -16,9 +16,7 @@
 
 # API
 
-## `MSEAudioWrapper`
-
-https://github.com/eshaz/mse-audio-wrapper/tree/master/src/MSEAudioWrapper.js
+## [`MSEAudioWrapper`](https://github.com/eshaz/mse-audio-wrapper/tree/master/src/MSEAudioWrapper.js)
 
 A class that takes in audio (MP3, AAC, Ogg Flac, Ogg Opus, or Ogg Vorbis) and outputs ISOBMFF or WEBM.
 
@@ -100,7 +98,10 @@ A class that takes in audio (MP3, AAC, Ogg Flac, Ogg Opus, or Ogg Vorbis) and ou
         * Accepts `"webm"`, `"fmp4"`
         * Defaults to `"fmp4"`
       ### Callbacks
-      * `options.onCodecUpdate(codecInfo)` *optional* Called when there is a change in the codec header. `codecInfo` is an object containing information about the codec such as `bitrate`, `sampleRate`, etc.
+      * `options.onMimeType(mimeType)` *optional* Called when the output mimeType is determined.
+        * See `wrapper.mimeType` for a list of the possible output mimetypes
+      * `options.onCodecUpdate(codecInfo)` *optional* Called when there is a change in the codec header.
+        * `codecInfo` is an object containing information about the codec such as `bitrate`, `sampleRate`, etc.
 * `wrapper.iterator(data)`
   * Returns an Iterator that can be used in a `for ...of` loop to return wrapped audio
   * Parameters:

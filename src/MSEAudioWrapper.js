@@ -25,6 +25,8 @@ import OggParser from "./codecs/ogg/OggParser";
 import ISOBMFFContainer from "./containers/isobmff/ISOBMFFContainer";
 import WEBMContainer from "./containers/webm/WEBMContainer";
 
+const noOp = () => {};
+
 export default class MSEAudioWrapper {
   /**
    * @description Wraps audio data into media source API compatible containers
@@ -41,7 +43,8 @@ export default class MSEAudioWrapper {
     this.MIN_FRAMES = options.minFramesPerSegment || 4;
     this.MAX_FRAMES = options.maxFramesPerSegment || 20;
     this.MIN_FRAMES_LENGTH = options.minBytesPerSegment || 1022;
-    this._onCodecUpdate = options.onCodecUpdate || (() => {});
+    this._onCodecUpdate = options.onCodecUpdate || noOp;
+    this._onMimeType = options.onMimeType || noOp;
 
     this._frames = [];
     this._codecData = new Uint8Array(0);
@@ -136,6 +139,7 @@ export default class MSEAudioWrapper {
     }
 
     this._container = this._getContainer();
+    this._onMimeType(this._mimeType);
 
     // yield the movie box along with a movie fragment containing frames
     let mseData = concatBuffers(
