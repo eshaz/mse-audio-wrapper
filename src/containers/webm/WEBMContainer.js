@@ -18,6 +18,7 @@
 
 import ContainerElement from "../ContainerElement";
 import EBML, { id } from "./EBML";
+import { oggLacing } from "../../utilities";
 
 export default class WEBMContainer {
   constructor(codec) {
@@ -35,7 +36,7 @@ export default class WEBMContainer {
               this._getTimecode(3840) * this._timecodeScale
             ),
           }), // OPUS seek preroll 80ms
-          new EBML(id.CodecPrivate, { contents: header.bytes }), // OpusHead bytes
+          new EBML(id.CodecPrivate, { contents: header.data }), // OpusHead bytes
         ];
         break;
       }
@@ -45,9 +46,10 @@ export default class WEBMContainer {
           new EBML(id.CodecPrivate, {
             contents: [
               0x02, // number of packets
-              header.codecPrivate.lacing,
-              header.codecPrivate.vorbisHead,
-              header.codecPrivate.vorbisSetup,
+              oggLacing(header.data, header.vorbisComments),
+              header.data,
+              header.vorbisComments,
+              header.vorbisSetup,
             ],
           }),
         ];
@@ -62,7 +64,7 @@ export default class WEBMContainer {
     return (sampleNumber / this._sampleRate) * 1000;
   }
 
-  getInitializationSegment(header) {
+  getInitializationSegment({ header }) {
     this._sampleRate = header.sampleRate;
 
     return new ContainerElement({
@@ -136,7 +138,7 @@ export default class WEBMContainer {
           ), // Absolute timecode of the cluster
         }),
         ...frames.map(
-          ({ data, header }) =>
+          ({ data, samples }) =>
             new EBML(id.SimpleBlock, {
               contents: [
                 0x81, // track number
@@ -144,7 +146,7 @@ export default class WEBMContainer {
                   Math.round(
                     this._getTimecode(
                       blockSamples,
-                      void (blockSamples += header.samplesPerFrame)
+                      void (blockSamples += samples)
                     )
                   )
                 ), // timestamp relative to cluster Int16
