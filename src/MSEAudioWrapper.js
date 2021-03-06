@@ -66,8 +66,7 @@ export default class MSEAudioWrapper {
   }
 
   wrap(chunk) {
-    const frames = [...this._codecParser.iterator(chunk)];
-    this._frames.push(...frames);
+    this._frames.push(...this._codecParser.iterator(chunk));
 
     const groups = this._groupFrames();
 
@@ -122,10 +121,10 @@ export default class MSEAudioWrapper {
    */
   _getContainer() {
     switch (this._codecParser.codec) {
-      case "mp3":
+      case "mpeg":
         this._mimeType = 'audio/mp4;codecs="mp3"';
         return new ISOBMFFContainer("mp3");
-      case "mp4a.40.2":
+      case "aac":
         this._mimeType = 'audio/mp4;codecs="mp4a.40.2"';
         return new ISOBMFFContainer("mp4a.40.2");
       case "flac":

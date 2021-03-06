@@ -28,13 +28,11 @@ export default class WEBMContainer {
         this._getCodecSpecificTrack = (header) => [
           new EBML(id.CodecDelay, {
             contents: EBML.getUint32(
-              this._getTimecode(header.preSkip) * this._timecodeScale
+              (header.preSkip / header.sampleRate) * 1000
             ),
           }), // OPUS codec delay
           new EBML(id.SeekPreRoll, {
-            contents: EBML.getUint32(
-              this._getTimecode(3840) * this._timecodeScale
-            ),
+            contents: EBML.getUint32((3840 / header.sampleRate) * 1000),
           }), // OPUS seek preroll 80ms
           new EBML(id.CodecPrivate, { contents: header.data }), // OpusHead bytes
         ];
@@ -56,17 +54,9 @@ export default class WEBMContainer {
         break;
       }
     }
-
-    this._sampleNumber = 0;
-  }
-
-  _getTimecode(sampleNumber) {
-    return (sampleNumber / this._sampleRate) * 1000;
   }
 
   getInitializationSegment({ header }) {
-    this._sampleRate = header.sampleRate;
-
     return new ContainerElement({
       children: [
         new EBML(id.EBML, {
@@ -128,38 +118,25 @@ export default class WEBMContainer {
   }
 
   getMediaSegment(frames) {
-    let blockSamples = 0;
+    const offsetDuration = frames[0].totalDuration;
 
-    const cluster = new EBML(id.Cluster, {
+    return new EBML(id.Cluster, {
       children: [
         new EBML(id.Timecode, {
-          contents: EBML.getUintVariable(
-            Math.round(this._getTimecode(this._sampleNumber))
-          ), // Absolute timecode of the cluster
+          contents: EBML.getUintVariable(Math.round(offsetDuration)), // Absolute timecode of the cluster
         }),
         ...frames.map(
-          ({ data, samples }) =>
+          ({ data, totalDuration }) =>
             new EBML(id.SimpleBlock, {
               contents: [
                 0x81, // track number
-                EBML.getInt16(
-                  Math.round(
-                    this._getTimecode(
-                      blockSamples,
-                      void (blockSamples += samples)
-                    )
-                  )
-                ), // timestamp relative to cluster Int16
+                EBML.getInt16(Math.round(totalDuration - offsetDuration)), // timestamp relative to cluster Int16
                 0x80, // No lacing
                 data, // ogg page contents
               ],
             })
         ),
       ],
-    });
-
-    this._sampleNumber += blockSamples;
-
-    return cluster.contents;
+    }).contents;
   }
 }
