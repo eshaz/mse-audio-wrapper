@@ -1,6 +1,6 @@
 {
   "name": "mse-audio-wrapper",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Library to enable Media Source Extensions API playback for unsupported audio containers and raw codecs",
   "main": "index.js",
   "keywords": [
