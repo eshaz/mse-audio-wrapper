@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 */
 
-const oggLacing = (...buffers) =>
+const xiphLacing = (...buffers) =>
   buffers.flatMap((buffer) => {
     const lacing = [];
     for (let l = buffer.length; l >= 0; l -= 255) {
@@ -32,17 +32,4 @@ const logError = (...messages) => {
   );
 };
 
-const concatBuffers = (...buffers) => {
-  const buffer = new Uint8Array(
-    buffers.reduce((acc, buf) => acc + buf.length, 0)
-  );
-
-  buffers.reduce((offset, buf) => {
-    buffer.set(buf, offset);
-    return offset + buf.length;
-  }, 0);
-
-  return buffer;
-};
-
-export { logError, concatBuffers, oggLacing };
+export { logError, xiphLacing };

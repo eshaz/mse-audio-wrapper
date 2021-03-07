@@ -18,7 +18,7 @@
 
 import ContainerElement from "../ContainerElement";
 import EBML, { id } from "./EBML";
-import { concatBuffers, oggLacing } from "../../utilities";
+import { xiphLacing } from "../../utilities";
 
 export default class WEBMContainer {
   constructor(codec) {
@@ -28,13 +28,11 @@ export default class WEBMContainer {
         this._getCodecSpecificTrack = (header) => [
           new EBML(id.CodecDelay, {
             contents: EBML.getUint32(
-              Math.round((1000000000 * header.preSkip) / header.sampleRate)
+              Math.round(header.preSkip * this._timestampScale)
             ),
           }), // OPUS codec delay
           new EBML(id.SeekPreRoll, {
-            contents: EBML.getUint32(
-              Math.round((1000000000 * 3840) / header.sampleRate)
-            ),
+            contents: EBML.getUint32(Math.round(3840 * this._timestampScale)),
           }), // OPUS seek preroll 80ms
           new EBML(id.CodecPrivate, { contents: header.data }), // OpusHead bytes
         ];
@@ -46,7 +44,7 @@ export default class WEBMContainer {
           new EBML(id.CodecPrivate, {
             contents: [
               0x02, // number of packets
-              oggLacing(header.data, header.vorbisComments),
+              xiphLacing(header.data, header.vorbisComments),
               header.data,
               header.vorbisComments,
               header.vorbisSetup,
@@ -59,6 +57,8 @@ export default class WEBMContainer {
   }
 
   getInitializationSegment({ header }) {
+    this._timestampScale = 1000000000 / header.sampleRate;
+
     return new ContainerElement({
       children: [
         new EBML(id.EBML, {
@@ -79,7 +79,7 @@ export default class WEBMContainer {
               children: [
                 new EBML(id.TimestampScale, {
                   contents: EBML.getUint32(
-                    Math.floor(1000000000 / header.sampleRate) // Base timestamps on sample rate vs. milliseconds https://www.matroska.org/technical/notes.html#timestamps
+                    Math.floor(this._timestampScale) // Base timestamps on sample rate vs. milliseconds https://www.matroska.org/technical/notes.html#timestamps
                   ),
                 }),
                 new EBML(id.MuxingApp, {
