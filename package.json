@@ -38,7 +38,7 @@
   },
   "homepage": "https://github.com/eshaz/mse-audio-wrapper#readme",
   "dependencies": {
-    "codec-parser": "0.0.2"
+    "codec-parser": "0.0.3"
   },
   "devDependencies": {
     "prettier": "^2.2.1"
