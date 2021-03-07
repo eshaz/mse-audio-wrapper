@@ -18,7 +18,6 @@
 
 import CodecParser from "codec-parser";
 
-import { concatBuffers } from "./utilities";
 import ISOBMFFContainer from "./containers/isobmff/ISOBMFFContainer";
 import WEBMContainer from "./containers/webm/WEBMContainer";
 
@@ -38,13 +37,18 @@ export default class MSEAudioWrapper {
 
     this.PREFERRED_CONTAINER = options.preferredContainer || "webm";
     this.MIN_FRAMES = options.minFramesPerSegment || 4;
-    this.MAX_FRAMES = options.maxFramesPerSegment || 20;
+    this.MAX_FRAMES = options.maxFramesPerSegment || 50;
     this.MIN_FRAMES_LENGTH = options.minBytesPerSegment || 1022;
+    this.MAX_SAMPLES_PER_SEGMENT = Infinity;
 
     this._onMimeType = options.onMimeType || noOp;
 
     this._frames = [];
     this._codecParser = new CodecParser(mimeType, {
+      onCodec: (codec) => {
+        this._container = this._getContainer(codec);
+        this._onMimeType(this._mimeType);
+      },
       onCodecUpdate: options.onCodecUpdate,
     });
   }
@@ -65,54 +69,69 @@ export default class MSEAudioWrapper {
     return this._inputMimeType;
   }
 
+  /**
+   * @public
+   * @description Returns an iterator for the passed in codec data.
+   * @param {Uint8Array} chunk Next chunk of codec data to read
+   * @returns {Iterator} Iterator that operates over the codec data.
+   * @yields {Uint8Array} Movie Fragments containing codec frames
+   */
   *iterator(chunk) {
     this._frames.push(...this._codecParser.iterator(chunk));
 
-    const groups = this._groupFrames();
+    if (this._frames.length) {
+      const groups = this._groupFrames();
 
-    if (groups) {
-      if (!this._mimeType) {
-        this._container = this._getContainer();
-        this._onMimeType(this._mimeType);
+      if (groups.length) {
+        if (!this._sentInitialSegment) {
+          this._sentInitialSegment = true;
 
-        yield this._container.getInitializationSegment(groups[0][0]);
+          yield this._container.getInitializationSegment(groups[0][0]);
+        }
+        for (const frameGroup of groups) {
+          yield this._container.getMediaSegment(frameGroup);
+        }
       }
-      for (const frameGroup of groups) {
-        yield this._container.getMediaSegment(frameGroup);
-      }
-    }
-  }
-
-  _groupFrames() {
-    if (
-      this._frames.length >= this.MIN_FRAMES &&
-      this._frames.reduce((acc, frame) => acc + frame.data.length, 0) >=
-        this.MIN_FRAMES_LENGTH
-    ) {
-      const remainingFrames = this._frames.length % this.MAX_FRAMES;
-
-      const framesToReturn =
-        remainingFrames < this.MIN_FRAMES // store the frames if a group doesn't meet min frames
-          ? this._frames.length - remainingFrames
-          : this._frames.length;
-
-      const groups = [];
-      for (let i = 0; i < framesToReturn; i++) {
-        const index = Math.floor(i / this.MAX_FRAMES);
-
-        if (!groups[index]) groups[index] = [];
-        groups[index].push(this._frames.shift());
-      }
-
-      return groups;
     }
   }
 
   /**
    * @private
    */
-  _getContainer() {
-    switch (this._codecParser.codec) {
+  _groupFrames() {
+    const groups = [[]];
+    let currentGroup = groups[0];
+    let samples = 0;
+
+    for (const frame of this._frames) {
+      if (
+        currentGroup.length === this.MAX_FRAMES ||
+        samples >= this.MAX_SAMPLES_PER_SEGMENT
+      ) {
+        samples = 0;
+        groups.push((currentGroup = [])); // create new group
+      }
+
+      currentGroup.push(frame);
+      samples += frame.samples;
+    }
+
+    // store remaining frames
+    this._frames =
+      currentGroup.length < this.MIN_FRAMES ||
+      currentGroup.reduce((acc, frame) => acc + frame.data.length, 0) <
+        this.MIN_FRAMES_LENGTH
+        ? groups.pop()
+        : [];
+
+    return groups;
+  }
+
+  /**
+   * @private
+   */
+  _getContainer(codec) {
+    switch (codec) {
       case "mpeg":
         this._mimeType = 'audio/mp4;codecs="mp3"';
         return new ISOBMFFContainer("mp3");
@@ -124,10 +143,14 @@ export default class MSEAudioWrapper {
         return new ISOBMFFContainer("flac");
       case "vorbis":
         this._mimeType = 'audio/webm;codecs="vorbis"';
+
+        this.MAX_SAMPLES_PER_SEGMENT = 32767;
         return new WEBMContainer("vorbis");
       case "opus":
         if (this.PREFERRED_CONTAINER === "webm") {
           this._mimeType = 'audio/webm;codecs="opus"';
+
+          this.MAX_SAMPLES_PER_SEGMENT = 32767;
           return new WEBMContainer("opus");
         }
         this._mimeType = 'audio/mp4;codecs="opus"';

@@ -122,36 +122,25 @@ export default class WEBMContainer {
   }
 
   getMediaSegment(frames) {
-    const clusters = [];
-    let offsetSamples;
+    const offsetSamples = frames[0].totalSamples;
 
-    for (const { data, totalSamples } of frames) {
-      if (clusters.length === 0 || totalSamples - offsetSamples >= 32767) {
-        offsetSamples = totalSamples;
-
-        clusters.push(
-          new EBML(id.Cluster, {
-            children: [
-              new EBML(id.Timecode, {
-                contents: EBML.getUintVariable(offsetSamples), // Absolute timecode of the cluster
-              }),
-            ],
-          })
-        );
-      }
-
-      clusters[clusters.length - 1].addChild(
-        new EBML(id.SimpleBlock, {
-          contents: [
-            0x81, // track number
-            EBML.getInt16(totalSamples - offsetSamples), // timestamp relative to cluster Int16
-            0x80, // No lacing
-            data, // ogg page contents
-          ],
-        })
-      );
-    }
-
-    return concatBuffers(...clusters.map((cluster) => cluster.contents));
+    return new EBML(id.Cluster, {
+      children: [
+        new EBML(id.Timecode, {
+          contents: EBML.getUintVariable(offsetSamples), // Absolute timecode of the cluster
+        }),
+        ...frames.map(
+          ({ data, totalSamples }) =>
+            new EBML(id.SimpleBlock, {
+              contents: [
+                0x81, // track number
+                EBML.getInt16(totalSamples - offsetSamples), // timestamp relative to cluster Int16
+                0x80, // No lacing
+                data, // ogg page contents
+              ],
+            })
+        ),
+      ],
+    }).contents;
   }
 }
