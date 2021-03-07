@@ -18,7 +18,9 @@
 
 import ContainerElement from "../ContainerElement";
 import EBML, { id } from "./EBML";
-import { oggLacing } from "../../utilities";
+import { concatBuffers, oggLacing } from "../../utilities";
+
+const MAX_SAMPLES_PER_CLUSTER = 32767;
 
 export default class WEBMContainer {
   constructor(codec) {
@@ -28,11 +30,13 @@ export default class WEBMContainer {
         this._getCodecSpecificTrack = (header) => [
           new EBML(id.CodecDelay, {
             contents: EBML.getUint32(
-              (header.preSkip / header.sampleRate) * 1000
+              Math.round((1000000000 * header.preSkip) / header.sampleRate)
             ),
           }), // OPUS codec delay
           new EBML(id.SeekPreRoll, {
-            contents: EBML.getUint32((3840 / header.sampleRate) * 1000),
+            contents: EBML.getUint32(
+              Math.round((1000000000 * 3840) / header.sampleRate)
+            ),
           }), // OPUS seek preroll 80ms
           new EBML(id.CodecPrivate, { contents: header.data }), // OpusHead bytes
         ];
@@ -57,6 +61,7 @@ export default class WEBMContainer {
   }
 
   getInitializationSegment({ header }) {
+    console.log(header);
     return new ContainerElement({
       children: [
         new EBML(id.EBML, {
@@ -76,7 +81,9 @@ export default class WEBMContainer {
             new EBML(id.Info, {
               children: [
                 new EBML(id.TimecodeScale, {
-                  contents: EBML.getUint32(1000000),
+                  contents: EBML.getUint32(
+                    Math.floor(1000000000 / header.sampleRate)
+                  ),
                 }),
                 new EBML(id.MuxingApp, {
                   contents: EBML.stringToByteArray("mse-audio-wrapper"),
@@ -118,25 +125,39 @@ export default class WEBMContainer {
   }
 
   getMediaSegment(frames) {
-    const offsetDuration = frames[0].totalDuration;
+    const clusters = [];
+    let offsetSamples;
 
-    return new EBML(id.Cluster, {
-      children: [
-        new EBML(id.Timecode, {
-          contents: EBML.getUintVariable(Math.round(offsetDuration)), // Absolute timecode of the cluster
-        }),
-        ...frames.map(
-          ({ data, totalDuration }) =>
-            new EBML(id.SimpleBlock, {
-              contents: [
-                0x81, // track number
-                EBML.getInt16(Math.round(totalDuration - offsetDuration)), // timestamp relative to cluster Int16
-                0x80, // No lacing
-                data, // ogg page contents
-              ],
-            })
-        ),
-      ],
-    }).contents;
+    for (const { data, totalSamples } of frames) {
+      if (
+        clusters.length === 0 ||
+        totalSamples - offsetSamples >= MAX_SAMPLES_PER_CLUSTER
+      ) {
+        offsetSamples = totalSamples;
+
+        clusters.push(
+          new EBML(id.Cluster, {
+            children: [
+              new EBML(id.Timecode, {
+                contents: EBML.getUintVariable(offsetSamples), // Absolute timecode of the cluster
+              }),
+            ],
+          })
+        );
+      }
+
+      clusters[clusters.length - 1].addChild(
+        new EBML(id.SimpleBlock, {
+          contents: [
+            0x81, // track number
+            EBML.getInt16(totalSamples - offsetSamples), // timestamp relative to cluster Int16
+            0x80, // No lacing
+            data, // ogg page contents
+          ],
+        })
+      );
+    }
+
+    return concatBuffers(...clusters.map((cluster) => cluster.contents));
   }
 }
