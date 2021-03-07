@@ -93,7 +93,7 @@ A class that takes in audio (MP3, AAC, Ogg Flac, Ogg Opus, or Ogg Vorbis) and ou
         * Defaults to `1022`
       * `options.maxFramesPerSegment` *optional* Maximum audio frames to group in a single segment
         * Accepts an integer greater than 0
-        * Defaults to `20`
+        * Defaults to `50`
       * `options.preferredContainer` *optional* Preferred output container when there are multiple supported containers
         * Accepts `"webm"`, `"fmp4"`
         * Defaults to `"webm"`

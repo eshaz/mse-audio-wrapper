@@ -77,7 +77,7 @@ export default class WEBMContainer {
           children: [
             new EBML(id.Info, {
               children: [
-                new EBML(id.TimecodeScale, {
+                new EBML(id.TimestampScale, {
                   contents: EBML.getUint32(
                     Math.floor(1000000000 / header.sampleRate) // Base timestamps on sample rate vs. milliseconds https://www.matroska.org/technical/notes.html#timestamps
                   ),
@@ -126,7 +126,7 @@ export default class WEBMContainer {
 
     return new EBML(id.Cluster, {
       children: [
-        new EBML(id.Timecode, {
+        new EBML(id.Timestamp, {
           contents: EBML.getUintVariable(offsetSamples), // Absolute timecode of the cluster
         }),
         ...frames.map(
