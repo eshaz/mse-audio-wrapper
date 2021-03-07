@@ -20,8 +20,6 @@ import ContainerElement from "../ContainerElement";
 import EBML, { id } from "./EBML";
 import { concatBuffers, oggLacing } from "../../utilities";
 
-const MAX_SAMPLES_PER_CLUSTER = 32767;
-
 export default class WEBMContainer {
   constructor(codec) {
     switch (codec) {
@@ -61,7 +59,6 @@ export default class WEBMContainer {
   }
 
   getInitializationSegment({ header }) {
-    console.log(header);
     return new ContainerElement({
       children: [
         new EBML(id.EBML, {
@@ -82,7 +79,7 @@ export default class WEBMContainer {
               children: [
                 new EBML(id.TimecodeScale, {
                   contents: EBML.getUint32(
-                    Math.floor(1000000000 / header.sampleRate)
+                    Math.floor(1000000000 / header.sampleRate) // Base timestamps on sample rate vs. milliseconds https://www.matroska.org/technical/notes.html#timestamps
                   ),
                 }),
                 new EBML(id.MuxingApp, {
@@ -129,10 +126,7 @@ export default class WEBMContainer {
     let offsetSamples;
 
     for (const { data, totalSamples } of frames) {
-      if (
-        clusters.length === 0 ||
-        totalSamples - offsetSamples >= MAX_SAMPLES_PER_CLUSTER
-      ) {
+      if (clusters.length === 0 || totalSamples - offsetSamples >= 32767) {
         offsetSamples = totalSamples;
 
         clusters.push(

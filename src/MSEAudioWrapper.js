@@ -65,7 +65,7 @@ export default class MSEAudioWrapper {
     return this._inputMimeType;
   }
 
-  wrap(chunk) {
+  *iterator(chunk) {
     this._frames.push(...this._codecParser.iterator(chunk));
 
     const groups = this._groupFrames();
@@ -75,19 +75,11 @@ export default class MSEAudioWrapper {
         this._container = this._getContainer();
         this._onMimeType(this._mimeType);
 
-        return concatBuffers(
-          this._container.getInitializationSegment(groups[0][0]),
-          ...groups.map((frameGroup) =>
-            this._container.getMediaSegment(frameGroup)
-          )
-        );
+        yield this._container.getInitializationSegment(groups[0][0]);
       }
-
-      return concatBuffers(
-        ...groups.map((frameGroup) =>
-          this._container.getMediaSegment(frameGroup)
-        )
-      );
+      for (const frameGroup of groups) {
+        yield this._container.getMediaSegment(frameGroup);
+      }
     }
   }
 

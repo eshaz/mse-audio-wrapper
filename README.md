@@ -96,7 +96,7 @@ A class that takes in audio (MP3, AAC, Ogg Flac, Ogg Opus, or Ogg Vorbis) and ou
         * Defaults to `20`
       * `options.preferredContainer` *optional* Preferred output container when there are multiple supported containers
         * Accepts `"webm"`, `"fmp4"`
-        * Defaults to `"fmp4"`
+        * Defaults to `"webm"`
       ### Callbacks
       * `options.onMimeType(mimeType)` *optional* Called when the output mimeType is determined.
         * See `wrapper.mimeType` for a list of the possible output mimetypes
