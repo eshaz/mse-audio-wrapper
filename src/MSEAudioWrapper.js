@@ -16,11 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 */
 
-import { concatBuffers } from "./utilities";
-
-import MPEGParser from "./codecs/mpeg/MPEGParser";
-import AACParser from "./codecs/aac/AACParser";
-import OggParser from "./codecs/ogg/OggParser";
+import CodecParser from "codec-parser";
 
 import ISOBMFFContainer from "./containers/isobmff/ISOBMFFContainer";
 import WEBMContainer from "./containers/webm/WEBMContainer";
@@ -39,19 +35,22 @@ export default class MSEAudioWrapper {
   constructor(mimeType, options = {}) {
     this._inputMimeType = mimeType;
 
-    this.PREFERRED_CONTAINER = options.preferredContainer || "fmp4";
+    this.PREFERRED_CONTAINER = options.preferredContainer || "webm";
     this.MIN_FRAMES = options.minFramesPerSegment || 4;
-    this.MAX_FRAMES = options.maxFramesPerSegment || 20;
+    this.MAX_FRAMES = options.maxFramesPerSegment || 50;
     this.MIN_FRAMES_LENGTH = options.minBytesPerSegment || 1022;
-    this._onCodecUpdate = options.onCodecUpdate || noOp;
+    this.MAX_SAMPLES_PER_SEGMENT = Infinity;
+
     this._onMimeType = options.onMimeType || noOp;
 
     this._frames = [];
-    this._codecData = new Uint8Array(0);
-    this._codecParser = this._getCodecParser();
-
-    this._generator = this._generator();
-    this._generator.next();
+    this._codecParser = new CodecParser(mimeType, {
+      onCodec: (codec) => {
+        this._container = this._getContainer(codec);
+        this._onMimeType(this._mimeType);
+      },
+      onCodecUpdate: options.onCodecUpdate,
+    });
   }
 
   /**
@@ -74,41 +73,69 @@ export default class MSEAudioWrapper {
    * @public
    * @description Returns an iterator for the passed in codec data.
    * @param {Uint8Array} chunk Next chunk of codec data to read
-   * @returns {IterableIterator} Iterator that operates over the codec data.
+   * @returns {Iterator} Iterator that operates over the codec data.
    * @yields {Uint8Array} Movie Fragments containing codec frames
    */
   *iterator(chunk) {
-    for (
-      let i = this._generator.next(chunk);
-      i.value;
-      i = this._generator.next()
-    ) {
-      yield i.value;
+    this._frames.push(...this._codecParser.iterator(chunk));
+
+    if (this._frames.length) {
+      const groups = this._groupFrames();
+
+      if (groups.length) {
+        if (!this._sentInitialSegment) {
+          this._sentInitialSegment = true;
+
+          yield this._container.getInitializationSegment(groups[0][0]);
+        }
+        for (const frameGroup of groups) {
+          yield this._container.getMediaSegment(frameGroup);
+        }
+      }
     }
   }
 
   /**
    * @private
    */
-  _getCodecParser() {
-    if (this._inputMimeType.match(/aac/)) {
-      return new AACParser(this._onCodecUpdate);
-    } else if (this._inputMimeType.match(/mpeg/)) {
-      return new MPEGParser(this._onCodecUpdate);
-    } else if (this._inputMimeType.match(/ogg/)) {
-      return new OggParser(this._onCodecUpdate);
+  _groupFrames() {
+    const groups = [[]];
+    let currentGroup = groups[0];
+    let samples = 0;
+
+    for (const frame of this._frames) {
+      if (
+        currentGroup.length === this.MAX_FRAMES ||
+        samples >= this.MAX_SAMPLES_PER_SEGMENT
+      ) {
+        samples = 0;
+        groups.push((currentGroup = [])); // create new group
+      }
+
+      currentGroup.push(frame);
+      samples += frame.samples;
     }
+
+    // store remaining frames
+    this._frames =
+      currentGroup.length < this.MIN_FRAMES ||
+      currentGroup.reduce((acc, frame) => acc + frame.data.length, 0) <
+        this.MIN_FRAMES_LENGTH
+        ? groups.pop()
+        : [];
+
+    return groups;
   }
 
   /**
    * @private
    */
-  _getContainer() {
-    switch (this._codecParser.codec) {
-      case "mp3":
+  _getContainer(codec) {
+    switch (codec) {
+      case "mpeg":
         this._mimeType = 'audio/mp4;codecs="mp3"';
         return new ISOBMFFContainer("mp3");
-      case "mp4a.40.2":
+      case "aac":
         this._mimeType = 'audio/mp4;codecs="mp4a.40.2"';
         return new ISOBMFFContainer("mp4a.40.2");
       case "flac":
@@ -116,96 +143,18 @@ export default class MSEAudioWrapper {
         return new ISOBMFFContainer("flac");
       case "vorbis":
         this._mimeType = 'audio/webm;codecs="vorbis"';
+
+        this.MAX_SAMPLES_PER_SEGMENT = 32767;
         return new WEBMContainer("vorbis");
       case "opus":
         if (this.PREFERRED_CONTAINER === "webm") {
           this._mimeType = 'audio/webm;codecs="opus"';
+
+          this.MAX_SAMPLES_PER_SEGMENT = 32767;
           return new WEBMContainer("opus");
         }
         this._mimeType = 'audio/mp4;codecs="opus"';
         return new ISOBMFFContainer("opus");
-    }
-  }
-
-  /**
-   * @private
-   */
-  *_generator() {
-    let frames;
-    // start parsing out frames
-    while (!frames) {
-      yield* this._sendReceiveData();
-      frames = this._parseFrames();
-    }
-
-    this._container = this._getContainer();
-    this._onMimeType(this._mimeType);
-
-    // yield the movie box along with a movie fragment containing frames
-    let mseData = concatBuffers(
-      this._container.getInitializationSegment(frames[0][0].header),
-      ...frames.map((frameGroup) => this._container.getMediaSegment(frameGroup))
-    );
-
-    // yield movie fragments containing frames
-    while (true) {
-      yield* this._sendReceiveData(mseData);
-      frames = this._parseFrames();
-      mseData = frames
-        ? concatBuffers(
-            ...frames.map((frameGroup) =>
-              this._container.getMediaSegment(frameGroup)
-            )
-          )
-        : null;
-    }
-  }
-
-  /**
-   * @private
-   */
-  *_sendReceiveData(mseData) {
-    let codecData = yield mseData;
-
-    while (!codecData) {
-      codecData = yield;
-    }
-
-    this._codecData = concatBuffers(this._codecData, codecData);
-  }
-
-  /**
-   * @private
-   */
-  _parseFrames() {
-    const { frames, remainingData } = this._codecParser.parseFrames(
-      this._codecData
-    );
-
-    this._frames = this._frames.concat(frames);
-    this._codecData = this._codecData.subarray(remainingData);
-
-    if (
-      this._frames.length >= this.MIN_FRAMES &&
-      this._frames.reduce((acc, frame) => acc + frame.data.length, 0) >=
-        this.MIN_FRAMES_LENGTH
-    ) {
-      const remainingFrames = this._frames.length % this.MAX_FRAMES;
-
-      const framesToReturn =
-        remainingFrames < this.MIN_FRAMES // store the frames if a group doesn't meet min frames
-          ? this._frames.length - remainingFrames
-          : this._frames.length;
-
-      const groups = [];
-      for (let i = 0; i < framesToReturn; i++) {
-        const index = Math.floor(i / this.MAX_FRAMES);
-
-        if (!groups[index]) groups[index] = [];
-        groups[index].push(this._frames.shift());
-      }
-
-      return groups;
     }
   }
 }

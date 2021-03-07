@@ -18,6 +18,7 @@
 
 import ContainerElement from "../ContainerElement";
 import EBML, { id } from "./EBML";
+import { xiphLacing } from "../../utilities";
 
 export default class WEBMContainer {
   constructor(codec) {
@@ -27,15 +28,13 @@ export default class WEBMContainer {
         this._getCodecSpecificTrack = (header) => [
           new EBML(id.CodecDelay, {
             contents: EBML.getUint32(
-              this._getTimecode(header.preSkip) * this._timecodeScale
+              Math.round(header.preSkip * this._timestampScale)
             ),
           }), // OPUS codec delay
           new EBML(id.SeekPreRoll, {
-            contents: EBML.getUint32(
-              this._getTimecode(3840) * this._timecodeScale
-            ),
+            contents: EBML.getUint32(Math.round(3840 * this._timestampScale)),
           }), // OPUS seek preroll 80ms
-          new EBML(id.CodecPrivate, { contents: header.bytes }), // OpusHead bytes
+          new EBML(id.CodecPrivate, { contents: header.data }), // OpusHead bytes
         ];
         break;
       }
@@ -45,25 +44,20 @@ export default class WEBMContainer {
           new EBML(id.CodecPrivate, {
             contents: [
               0x02, // number of packets
-              header.codecPrivate.lacing,
-              header.codecPrivate.vorbisHead,
-              header.codecPrivate.vorbisSetup,
+              xiphLacing(header.data, header.vorbisComments),
+              header.data,
+              header.vorbisComments,
+              header.vorbisSetup,
             ],
           }),
         ];
         break;
       }
     }
-
-    this._sampleNumber = 0;
   }
 
-  _getTimecode(sampleNumber) {
-    return (sampleNumber / this._sampleRate) * 1000;
-  }
-
-  getInitializationSegment(header) {
-    this._sampleRate = header.sampleRate;
+  getInitializationSegment({ header }) {
+    this._timestampScale = 1000000000 / header.sampleRate;
 
     return new ContainerElement({
       children: [
@@ -83,8 +77,10 @@ export default class WEBMContainer {
           children: [
             new EBML(id.Info, {
               children: [
-                new EBML(id.TimecodeScale, {
-                  contents: EBML.getUint32(1000000),
+                new EBML(id.TimestampScale, {
+                  contents: EBML.getUint32(
+                    Math.floor(this._timestampScale) // Base timestamps on sample rate vs. milliseconds https://www.matroska.org/technical/notes.html#timestamps
+                  ),
                 }),
                 new EBML(id.MuxingApp, {
                   contents: EBML.stringToByteArray("mse-audio-wrapper"),
@@ -126,38 +122,25 @@ export default class WEBMContainer {
   }
 
   getMediaSegment(frames) {
-    let blockSamples = 0;
+    const offsetSamples = frames[0].totalSamples;
 
-    const cluster = new EBML(id.Cluster, {
+    return new EBML(id.Cluster, {
       children: [
-        new EBML(id.Timecode, {
-          contents: EBML.getUintVariable(
-            Math.round(this._getTimecode(this._sampleNumber))
-          ), // Absolute timecode of the cluster
+        new EBML(id.Timestamp, {
+          contents: EBML.getUintVariable(offsetSamples), // Absolute timecode of the cluster
         }),
         ...frames.map(
-          ({ data, header }) =>
+          ({ data, totalSamples }) =>
             new EBML(id.SimpleBlock, {
               contents: [
                 0x81, // track number
-                EBML.getInt16(
-                  Math.round(
-                    this._getTimecode(
-                      blockSamples,
-                      void (blockSamples += header.samplesPerFrame)
-                    )
-                  )
-                ), // timestamp relative to cluster Int16
+                EBML.getInt16(totalSamples - offsetSamples), // timestamp relative to cluster Int16
                 0x80, // No lacing
                 data, // ogg page contents
               ],
             })
         ),
       ],
-    });
-
-    this._sampleNumber += blockSamples;
-
-    return cluster.contents;
+    }).contents;
   }
 }

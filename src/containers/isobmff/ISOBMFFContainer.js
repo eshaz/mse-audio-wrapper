@@ -187,10 +187,10 @@ export default class ISOBMFFContainer {
   }
 
   /**
-   * @param {Header} header Codec header
+   * @param {Header} header Codec frame
    * @returns {Uint8Array} Filetype and Movie Box information for the codec
    */
-  getInitializationSegment(header) {
+  getInitializationSegment({ header, samples }) {
     return new ContainerElement({
       children: [
         new Box("ftyp", {
@@ -317,7 +317,7 @@ export default class ISOBMFFContainer {
                   contents: [0x00,0x00,0x00,0x00, // flags
                     0x00,0x00,0x00,0x01, // track id
                     0x00,0x00,0x00,0x01, // default_sample_description_index
-                    Box.getUint32(header.samplesPerFrame), // default_sample_duration
+                    Box.getUint32(samples), // default_sample_duration
                     0x00,0x00,0x00,0x00, // default_sample_size;
                     0x00,0x00,0x00,0x00], // default_sample_flags;
                 }),
