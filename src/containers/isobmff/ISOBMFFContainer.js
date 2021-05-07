@@ -113,19 +113,22 @@ export default class ISOBMFFContainer {
       children: [
         new Box("dfLa", {
           /* prettier-ignore */
-          contents: [0x00, // version
+          contents: [
+            0x00, // version
             0x00,0x00,0x00, // flags
-            // * `A........` Last metadata block flag
-            // * `.BBBBBBBB` BlockType
-            0x80, // last metadata block, stream info
-            0x00,0x00,0x22, // Length
-            Box.getUint16(header.blockSize), // maximum block size
-            Box.getUint16(header.blockSize), // minimum block size
-            0x00,0x00,0x00, // maximum frame size
-            0x00,0x00,0x00, // minimum frame size
-            Box.getUint32((header.sampleRate << 12) | (header.channels << 8) | ((header.bitDepth - 1) << 4)), // 20bits sample rate, 3bits channels, 5bits bitDepth - 1
-            0x00,0x00,0x00,0x00, // total samples
-            0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00 // md5 of stream
+            ...(header.streamInfo || [
+              // * `A........` Last metadata block flag
+              // * `.BBBBBBBB` BlockType
+              0x80, // last metadata block, stream info
+              0x00,0x00,0x22, // Length
+              Box.getUint16(header.blockSize), // maximum block size
+              Box.getUint16(header.blockSize), // minimum block size
+              0x00,0x00,0x00, // maximum frame size
+              0x00,0x00,0x00, // minimum frame size
+              Box.getUint32((header.sampleRate << 12) | (header.channels << 8) | ((header.bitDepth - 1) << 4)), // 20bits sample rate, 3bits channels, 5bits bitDepth - 1
+              0x00,0x00,0x00,0x00, // total samples
+              0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00 // md5 of stream
+            ])
           ],
         }),
       ],
