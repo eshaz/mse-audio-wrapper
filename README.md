@@ -97,15 +97,20 @@ A class that takes in audio (MP3, AAC, Ogg Flac, Ogg Opus, or Ogg Vorbis) and ou
       * `options.preferredContainer` *optional* Preferred output container when there are multiple supported containers
         * Accepts `"webm"`, `"fmp4"`
         * Defaults to `"webm"`
+      * `options.codec` *optional* Specifies the type of codec frames that will be passed into `iterator(Array<CodecFrame>)`
+        * Do not use this option when passing in raw `Uint8Array` data to `iterator()`
+        * Accepts `aac`, `flac`, `mpeg`, `opus`, `vorbis`
+        * Defaults to `undefined`
       ### Callbacks
       * `options.onMimeType(mimeType)` *optional* Called when the output mimeType is determined.
         * See `wrapper.mimeType` for a list of the possible output mimetypes
       * `options.onCodecUpdate(codecInfo)` *optional* Called when there is a change in the codec header.
         * `codecInfo` is an object containing information about the codec such as `bitrate`, `sampleRate`, etc.
-* `wrapper.iterator(data)`
+* `wrapper.iterator(Uint8Array | Array<CodecFrame>)`
   * Returns an Iterator that can be used in a `for ...of` loop to return wrapped audio
   * Parameters:
-    * `data` Uint8Array of audio data to wrap
+    * `data` (`Uint8Array` | `Array<CodecFrame>`)
+      * *Note:* `CodecFrame` must follow the api noted in [`codec-parser`](https://github.com/eshaz/codec-parser) and `options.codec` must be set with the correct codec.
 * `wrapper.inputMimeType`
   * Getter that returns the mime-type of the incoming audio data
   * Examples:
