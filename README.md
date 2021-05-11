@@ -14,15 +14,14 @@
 
 ---
 
-# API
+## Installing
 
-## [`MSEAudioWrapper`](https://github.com/eshaz/mse-audio-wrapper/tree/master/src/MSEAudioWrapper.js)
+### Install via [NPM](https://www.npmjs.com/package/mse-audio-wrapper)
+* `npm i mse-audio-wrapper`
 
-A class that takes in audio (MP3, AAC, Ogg Flac, Ogg Opus, or Ogg Vorbis) and outputs ISOBMFF or WEBM.
+## Usage
 
-### Usage
-
-1. To use `MSEAudioWrapper`, create a new instance of the class by passing in the mimetype of your audio data.
+1. To use [`MSEAudioWrapper`](https://github.com/eshaz/mse-audio-wrapper/tree/master/src/MSEAudioWrapper.js), create a new instance of the class by passing in the mimetype of your audio data.
 
     *Note: For directly converting from a HTTP response, use the mimetype contained in the `Content-Type` header*
     
@@ -71,7 +70,7 @@ A class that takes in audio (MP3, AAC, Ogg Flac, Ogg Opus, or Ogg Vorbis) and ou
       --mdat [audio data]
       ```
 
-### Methods
+## Methods
 
 `const wrapper = new MSEAudioWrapper("audio/mpeg", {minFramesPerSegment: 2, minBytesPerSegment: 576, preferredContainer: "webm"});`
 * `constructor`
