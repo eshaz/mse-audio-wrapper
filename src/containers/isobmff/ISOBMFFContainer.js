@@ -332,6 +332,20 @@ export default class ISOBMFFContainer {
     }).contents;
   }
 
+  getSamplesPerFrame(frames) {
+    return this._codec === "mp4a.40.2"
+      ? frames.map(({ data, header }) =>
+          Box.getUint32(data.length - header.length)
+        )
+      : frames.map(({ data }) => Box.getUint32(data.length));
+  }
+
+  getFrameData(frames) {
+    return this._codec === "mp4a.40.2"
+      ? frames.map(({ data, header }) => data.subarray(header.length))
+      : frames.map(({ data }) => data);
+  }
+
   /**
    * @description Wraps codec frames into a Movie Fragment
    * @param {Array<Frame>} frames Frames to contain in this Movie Fragment
@@ -381,14 +395,14 @@ export default class ISOBMFFContainer {
                     // * `....|.......G` data-offset-present
                     Box.getUint32(frames.length), // number of samples
                     Box.getUint32(92 + frames.length * 4), // data offset
-                    ...frames.map(({data}) => Box.getUint32(data.length))], // samples size per frame
+                    ...this.getSamplesPerFrame(frames)], // samples size per frame
                 }),
               ],
             }),
           ],
         }),
         new Box("mdat", {
-          contents: frames.map(({ data }) => data),
+          contents: this.getFrameData(frames),
         }),
       ],
     }).contents;

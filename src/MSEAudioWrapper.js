@@ -27,6 +27,7 @@ export default class MSEAudioWrapper {
   /**
    * @description Wraps audio data into media source API compatible containers
    * @param {string} mimeType Mimetype of the audio data to wrap
+   * @param {string} options.codec Codec of the audio data to wrap
    * @param {object} options.preferredContainer Preferred audio container to output if multiple containers are available
    * @param {number} options.minBytesPerSegment Minimum number of bytes to process before returning a media segment
    * @param {number} options.minFramesPerSegment Minimum number of frames to process before returning a media segment
@@ -42,6 +43,11 @@ export default class MSEAudioWrapper {
     this.MAX_SAMPLES_PER_SEGMENT = Infinity;
 
     this._onMimeType = options.onMimeType || noOp;
+
+    if (options.codec) {
+      this._container = this._getContainer(options.codec);
+      this._onMimeType(this._mimeType);
+    }
 
     this._frames = [];
     this._codecParser = new CodecParser(mimeType, {
@@ -72,12 +78,23 @@ export default class MSEAudioWrapper {
   /**
    * @public
    * @description Returns an iterator for the passed in codec data.
-   * @param {Uint8Array} chunk Next chunk of codec data to read
+   * @param {Uint8Array | Array<Frame>} chunk Next chunk of codec data to read
    * @returns {Iterator} Iterator that operates over the codec data.
    * @yields {Uint8Array} Movie Fragments containing codec frames
    */
   *iterator(chunk) {
-    this._frames.push(...this._codecParser.iterator(chunk));
+    if (chunk.constructor === Uint8Array) {
+      yield* this._processFrames([...this._codecParser.iterator(chunk)]);
+    } else if (Array.isArray(chunk)) {
+      yield* this._processFrames(chunk);
+    }
+  }
+
+  /**
+   * @private
+   */
+  *_processFrames(frames) {
+    this._frames.push(...frames);
 
     if (this._frames.length) {
       const groups = this._groupFrames();

@@ -14,15 +14,14 @@
 
 ---
 
-# API
+## Installing
 
-## [`MSEAudioWrapper`](https://github.com/eshaz/mse-audio-wrapper/tree/master/src/MSEAudioWrapper.js)
+### Install via [NPM](https://www.npmjs.com/package/mse-audio-wrapper)
+* `npm i mse-audio-wrapper`
 
-A class that takes in audio (MP3, AAC, Ogg Flac, Ogg Opus, or Ogg Vorbis) and outputs ISOBMFF or WEBM.
+## Usage
 
-### Usage
-
-1. To use `MSEAudioWrapper`, create a new instance of the class by passing in the mimetype of your audio data.
+1. To use [`MSEAudioWrapper`](https://github.com/eshaz/mse-audio-wrapper/tree/master/src/MSEAudioWrapper.js), create a new instance of the class by passing in the mimetype of your audio data.
 
     *Note: For directly converting from a HTTP response, use the mimetype contained in the `Content-Type` header*
     
@@ -71,7 +70,7 @@ A class that takes in audio (MP3, AAC, Ogg Flac, Ogg Opus, or Ogg Vorbis) and ou
       --mdat [audio data]
       ```
 
-### Methods
+## Methods
 
 `const wrapper = new MSEAudioWrapper("audio/mpeg", {minFramesPerSegment: 2, minBytesPerSegment: 576, preferredContainer: "webm"});`
 * `constructor`
@@ -97,15 +96,20 @@ A class that takes in audio (MP3, AAC, Ogg Flac, Ogg Opus, or Ogg Vorbis) and ou
       * `options.preferredContainer` *optional* Preferred output container when there are multiple supported containers
         * Accepts `"webm"`, `"fmp4"`
         * Defaults to `"webm"`
+      * `options.codec` *optional* Specifies the type of codec frames that will be passed into `iterator(Array<CodecFrame>)`
+        * Do not use this option when passing in raw `Uint8Array` data to `iterator()`
+        * Accepts `aac`, `flac`, `mpeg`, `opus`, `vorbis`
+        * Defaults to `undefined`
       ### Callbacks
       * `options.onMimeType(mimeType)` *optional* Called when the output mimeType is determined.
         * See `wrapper.mimeType` for a list of the possible output mimetypes
       * `options.onCodecUpdate(codecInfo)` *optional* Called when there is a change in the codec header.
         * `codecInfo` is an object containing information about the codec such as `bitrate`, `sampleRate`, etc.
-* `wrapper.iterator(data)`
+* `wrapper.iterator(Uint8Array | Array<CodecFrame>)`
   * Returns an Iterator that can be used in a `for ...of` loop to return wrapped audio
   * Parameters:
-    * `data` Uint8Array of audio data to wrap
+    * `data` (`Uint8Array` | `Array<CodecFrame>`)
+      * *Note:* `CodecFrame` must follow the api noted in [`codec-parser`](https://github.com/eshaz/codec-parser) and `options.codec` must be set with the correct codec.
 * `wrapper.inputMimeType`
   * Getter that returns the mime-type of the incoming audio data
   * Examples:
