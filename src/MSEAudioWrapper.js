@@ -18,8 +18,8 @@
 
 import CodecParser from "codec-parser";
 
-import ISOBMFFContainer from "./containers/isobmff/ISOBMFFContainer";
-import WEBMContainer from "./containers/webm/WEBMContainer";
+import ISOBMFFContainer from "./containers/isobmff/ISOBMFFContainer.js";
+import WEBMContainer from "./containers/webm/WEBMContainer.js";
 
 const noOp = () => {};
 

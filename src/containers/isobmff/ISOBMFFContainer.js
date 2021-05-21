@@ -16,9 +16,9 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 */
 
-import ContainerElement from "../ContainerElement";
-import Box from "./Box";
-import ESTag from "./ESTag";
+import ContainerElement from "../ContainerElement.js";
+import Box from "./Box.js";
+import ESTag from "./ESTag.js";
 
 /**
  * @description Fragmented ISO Base Media File Format Builder is a class to

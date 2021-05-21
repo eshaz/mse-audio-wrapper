@@ -16,9 +16,9 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 */
 
-import ContainerElement from "../ContainerElement";
-import EBML, { id } from "./EBML";
-import { xiphLacing } from "../../utilities";
+import ContainerElement from "../ContainerElement.js";
+import EBML, { id } from "./EBML.js";
+import { xiphLacing } from "../../utilities.js";
 
 export default class WEBMContainer {
   constructor(codec) {

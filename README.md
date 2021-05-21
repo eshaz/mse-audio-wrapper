@@ -25,7 +25,7 @@
 
     *Note: For directly converting from a HTTP response, use the mimetype contained in the `Content-Type` header*
     
-    ```
+    ```javascript
     import MSEAudioWrapper from "mse-audio-wrapper";
     
     const headers = myHTTPResponse.headers;
@@ -36,7 +36,7 @@
     
 1. To begin processing audio data, pass in the audio data into the instance's `.iterator()`. This method returns an iterator that can be consumed using a `for ...of` or `for await...of` loop. Repeat this step until all audio data has been read.
 
-    ```
+    ```javascript
     const audioData = response.body;
     
     for (const wrappedAudio of audioWrapper.iterator(audioData)) {

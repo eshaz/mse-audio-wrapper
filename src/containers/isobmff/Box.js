@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 */
 
-import ContainerElement from "../ContainerElement";
+import ContainerElement from "../ContainerElement.js";
 
 export default class Box extends ContainerElement {
   /**
