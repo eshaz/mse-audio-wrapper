@@ -16,8 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 */
 
-import { logError } from "../../utilities";
-import ContainerElement from "../ContainerElement";
+import { logError } from "../../utilities.js";
+import ContainerElement from "../ContainerElement.js";
 
 export default class EBML extends ContainerElement {
   /**
