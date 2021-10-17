@@ -32,6 +32,7 @@ export default class MSEAudioWrapper {
    * @param {number} options.minBytesPerSegment Minimum number of bytes to process before returning a media segment
    * @param {number} options.minFramesPerSegment Minimum number of frames to process before returning a media segment
    * @param {number} options.minBytesPerSegment Minimum number of bytes to process before returning a media segment
+   * @param {boolean} options.enableLogging Set to true to enable debug logging
    */
   constructor(mimeType, options = {}) {
     this._inputMimeType = mimeType;
@@ -56,6 +57,7 @@ export default class MSEAudioWrapper {
         this._onMimeType(this._mimeType);
       },
       onCodecUpdate: options.onCodecUpdate,
+      enableLogging: options.enableLogging,
     });
   }
 

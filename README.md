@@ -4,7 +4,7 @@
 
  * [**API**](#mse-audio-wrapper)
    * [**MSEAudioWrapper**](#MSEAudioWrapper)
-     * Takes in audio (MP3, AAC, Ogg Flac, Ogg Opus, Ogg Vorbis)
+     * Takes in audio (MP3, AAC, FLAC, Ogg FLAC, Ogg Opus, Ogg Vorbis)
      * Outputs
        * ISOBMFF (fMP4) (MP3, AAC, Flac, Opus)
        * WEBM (Opus, Vorbis)
@@ -79,6 +79,7 @@
     * `mimetype` *required* Incoming audio codec or container
       * MP3 - `audio/mpeg`
       * AAC - `audio/aac`, `audio/aacp`
+      * FLAC - `audio/flac`
       * Ogg FLAC - `application/ogg`, `audio/ogg`
       * Ogg Opus - `application/ogg`, `audio/ogg`
       * Ogg Vorbis - `application/ogg`, `audio/ogg`
@@ -100,6 +101,8 @@
         * Do not use this option when passing in raw `Uint8Array` data to `iterator()`
         * Accepts `aac`, `flac`, `mpeg`, `opus`, `vorbis`
         * Defaults to `undefined`
+      * `options.enableLogging` *optional* Set to `true` to enable debug logging
+        * Defaults to `false`
       ### Callbacks
       * `options.onMimeType(mimeType)` *optional* Called when the output mimeType is determined.
         * See `wrapper.mimeType` for a list of the possible output mimetypes
@@ -115,6 +118,7 @@
   * Examples:
     * MP3 - `audio/mpeg`
     * AAC - `audio/aac`
+    * FLAC - `audio/flac`
     * Ogg FLAC - `application/ogg`, `audio/ogg`
     * Ogg Opus - `application/ogg`, `audio/ogg`
     * Ogg Vorbis - `application/ogg`, `audio/ogg`
