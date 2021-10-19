@@ -106,8 +106,9 @@
       ### Callbacks
       * `options.onMimeType(mimeType)` *optional* Called when the output mimeType is determined.
         * See `wrapper.mimeType` for a list of the possible output mimetypes
-      * `options.onCodecUpdate(codecInfo)` *optional* Called when there is a change in the codec header.
+      * `options.onCodecUpdate(codecInfo, updateTimestamp)` *optional* Called when there is a change in the codec header.
         * `codecInfo` is an object containing information about the codec such as `bitrate`, `sampleRate`, etc.
+        * `updateTimestamp` is the time in milliseconds within the audio stream when the codec information was updated
 * `wrapper.iterator(Uint8Array | Array<CodecFrame>)`
   * Returns an Iterator that can be used in a `for ...of` loop to return wrapped audio
   * Parameters:
