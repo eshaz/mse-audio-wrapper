@@ -16,6 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 */
 
+import { MSE_AUDIO_WRAPPER } from "./constants.js";
+
 const xiphLacing = (...buffers) =>
   buffers.flatMap((buffer) => {
     const lacing = [];
@@ -27,7 +29,7 @@ const xiphLacing = (...buffers) =>
 
 const logError = (...messages) => {
   console.error(
-    "mse-audio-wrapper",
+    MSE_AUDIO_WRAPPER,
     messages.reduce((acc, message) => acc + "\n  " + message, "")
   );
 };

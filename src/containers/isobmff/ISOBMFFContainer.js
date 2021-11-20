@@ -16,6 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 */
 
+import { MP3, MP4A_40_2, FLAC, OPUS } from "../../constants.js";
+
 import ContainerElement from "../ContainerElement.js";
 import Box from "./Box.js";
 import ESTag from "./ESTag.js";
@@ -40,13 +42,13 @@ export default class ISOBMFFContainer {
      * 0x67 - MPEG-2 AAC LC
      */
     switch (this._codec) {
-      case "mp3":
+      case MP3:
         return this.getMp4a(header, 0x6b);
-      case "mp4a.40.2":
+      case MP4A_40_2:
         return this.getMp4a(header, 0x40);
-      case "opus":
+      case OPUS:
         return this.getOpus(header);
-      case "flac":
+      case FLAC:
         return this.getFlaC(header);
     }
   }
@@ -333,7 +335,7 @@ export default class ISOBMFFContainer {
   }
 
   getSamplesPerFrame(frames) {
-    return this._codec === "mp4a.40.2"
+    return this._codec === MP4A_40_2
       ? frames.map(({ data, header }) =>
           Box.getUint32(data.length - header.length)
         )
@@ -341,7 +343,7 @@ export default class ISOBMFFContainer {
   }
 
   getFrameData(frames) {
-    return this._codec === "mp4a.40.2"
+    return this._codec === MP4A_40_2
       ? frames.map(({ data, header }) => data.subarray(header.length))
       : frames.map(({ data }) => data);
   }
