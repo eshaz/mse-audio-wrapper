@@ -16,7 +16,9 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 */
 
+import { MSE_AUDIO_WRAPPER } from "../../constants.js";
 import { logError } from "../../utilities.js";
+
 import ContainerElement from "../ContainerElement.js";
 
 export default class EBML extends ContainerElement {
@@ -68,7 +70,7 @@ export default class EBML extends ContainerElement {
       logError(
         `EBML Variable integer must be a number, instead received ${number}`
       );
-      throw new Error("mse-audio-wrapper: Unable to encode WEBM");
+      throw new Error(MSE_AUDIO_WRAPPER + ": Unable to encode WEBM");
     }
 
     return buffer;

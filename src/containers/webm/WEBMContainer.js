@@ -16,14 +16,16 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>
 */
 
+import { VORBIS, OPUS, WEBM, MSE_AUDIO_WRAPPER } from "../../constants.js";
+import { xiphLacing } from "../../utilities.js";
+
 import ContainerElement from "../ContainerElement.js";
 import EBML, { id } from "./EBML.js";
-import { xiphLacing } from "../../utilities.js";
 
 export default class WEBMContainer {
   constructor(codec) {
     switch (codec) {
-      case "opus": {
+      case OPUS: {
         this._codecId = "A_OPUS";
         this._getCodecSpecificTrack = (header) => [
           new EBML(id.CodecDelay, {
@@ -38,7 +40,7 @@ export default class WEBMContainer {
         ];
         break;
       }
-      case "vorbis": {
+      case VORBIS: {
         this._codecId = "A_VORBIS";
         this._getCodecSpecificTrack = (header) => [
           new EBML(id.CodecPrivate, {
@@ -67,7 +69,7 @@ export default class WEBMContainer {
             new EBML(id.EBMLReadVersion, { contents: 1 }),
             new EBML(id.EBMLMaxIDLength, { contents: 4 }),
             new EBML(id.EBMLMaxSizeLength, { contents: 8 }),
-            new EBML(id.DocType, { contents: EBML.stringToByteArray("webm") }),
+            new EBML(id.DocType, { contents: EBML.stringToByteArray(WEBM) }),
             new EBML(id.DocTypeVersion, { contents: 4 }),
             new EBML(id.DocTypeReadVersion, { contents: 2 }),
           ],
@@ -83,10 +85,10 @@ export default class WEBMContainer {
                   ),
                 }),
                 new EBML(id.MuxingApp, {
-                  contents: EBML.stringToByteArray("mse-audio-wrapper"),
+                  contents: EBML.stringToByteArray(MSE_AUDIO_WRAPPER),
                 }),
                 new EBML(id.WritingApp, {
-                  contents: EBML.stringToByteArray("mse-audio-wrapper"),
+                  contents: EBML.stringToByteArray(MSE_AUDIO_WRAPPER),
                 }),
               ],
             }),
