@@ -69,7 +69,7 @@ export default class MSEAudioWrapper {
       },
       onCodecUpdate: options.onCodecUpdate,
       enableLogging: options.enableLogging,
-      enableFrameCRC32: false
+      enableFrameCRC32: false,
     });
   }
 

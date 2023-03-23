@@ -1,9 +1,10 @@
 {
   "name": "mse-audio-wrapper",
-  "version": "1.4.7",
+  "version": "1.4.8",
   "description": "Library to enable Media Source Extensions API playback for unsupported audio containers and raw codecs",
   "main": "src/MSEAudioWrapper.js",
   "type": "module",
+  "sideEffects": false,
   "keywords": [
     "isobmff",
     "mp4",
@@ -23,7 +24,7 @@
     "ogg"
   ],
   "scripts": {
-    "format": "prettier --write '**/*.js' --write '**/*.json'"
+    "format": "prettier --cache --write '**/*.js' --write '**/*.json'"
   },
   "repository": {
     "type": "git",
@@ -43,9 +44,9 @@
     "url": "https://github.com/sponsors/eshaz"
   },
   "dependencies": {
-    "codec-parser": "2.2.0"
+    "codec-parser": "2.2.1"
   },
   "devDependencies": {
-    "prettier": "^2.7.1"
+    "prettier": "^2.8.6"
   }
 }
