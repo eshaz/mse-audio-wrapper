@@ -1,6 +1,6 @@
 {
   "name": "mse-audio-wrapper",
-  "version": "1.4.8",
+  "version": "1.4.9",
   "description": "Library to enable Media Source Extensions API playback for unsupported audio containers and raw codecs",
   "main": "src/MSEAudioWrapper.js",
   "type": "module",
@@ -44,9 +44,9 @@
     "url": "https://github.com/sponsors/eshaz"
   },
   "dependencies": {
-    "codec-parser": "2.2.1"
+    "codec-parser": "2.3.0"
   },
   "devDependencies": {
-    "prettier": "^2.8.6"
+    "prettier": "^2.8.7"
   }
 }
