@@ -171,7 +171,7 @@ export default class MSEAudioWrapper {
         this._mimeType = `${AUDIO_MP4}"${MP3}"`;
         return new ISOBMFFContainer(MP3);
       case "aac":
-        this._mimeType = `${AUDIO_MP4}"${MP4A_40_2}`;
+        this._mimeType = `${AUDIO_MP4}"${MP4A_40_2}"`;
         return new ISOBMFFContainer(MP4A_40_2);
       case "flac":
         this._mimeType = `${AUDIO_MP4}"${FLAC}"`;
