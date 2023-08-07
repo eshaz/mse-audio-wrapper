@@ -68,7 +68,7 @@ export default class EBML extends ContainerElement {
       buffer[0] |= 0b00000001;
     } else if (typeof number !== "number" || isNaN(number)) {
       logError(
-        `EBML Variable integer must be a number, instead received ${number}`
+        `EBML Variable integer must be a number, instead received ${number}`,
       );
       throw new Error(MSE_AUDIO_WRAPPER + ": Unable to encode WEBM");
     }

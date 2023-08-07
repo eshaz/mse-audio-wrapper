@@ -30,7 +30,7 @@ export default class WEBMContainer {
         this._getCodecSpecificTrack = (header) => [
           new EBML(id.CodecDelay, {
             contents: EBML.getUint32(
-              Math.round(header.preSkip * this._timestampScale)
+              Math.round(header.preSkip * this._timestampScale),
             ),
           }), // OPUS codec delay
           new EBML(id.SeekPreRoll, {
@@ -81,7 +81,7 @@ export default class WEBMContainer {
               children: [
                 new EBML(id.TimestampScale, {
                   contents: EBML.getUint32(
-                    Math.floor(this._timestampScale) // Base timestamps on sample rate vs. milliseconds https://www.matroska.org/technical/notes.html#timestamps
+                    Math.floor(this._timestampScale), // Base timestamps on sample rate vs. milliseconds https://www.matroska.org/technical/notes.html#timestamps
                   ),
                 }),
                 new EBML(id.MuxingApp, {
@@ -140,7 +140,7 @@ export default class WEBMContainer {
                 0x80, // No lacing
                 data, // ogg page contents
               ],
-            })
+            }),
         ),
       ],
     }).contents;

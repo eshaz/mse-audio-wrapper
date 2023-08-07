@@ -154,7 +154,7 @@ export default class ISOBMFFContainer {
       streamDescriptorTag.addTag(
         new ESTag(5, {
           contents: header.audioSpecificConfig,
-        })
+        }),
       );
     }
 
@@ -337,7 +337,7 @@ export default class ISOBMFFContainer {
   getSamplesPerFrame(frames) {
     return this._codec === MP4A_40_2
       ? frames.map(({ data, header }) =>
-          Box.getUint32(data.length - header.length)
+          Box.getUint32(data.length - header.length),
         )
       : frames.map(({ data }) => Box.getUint32(data.length));
   }

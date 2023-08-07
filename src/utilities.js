@@ -30,7 +30,7 @@ const xiphLacing = (...buffers) =>
 const logError = (...messages) => {
   console.error(
     MSE_AUDIO_WRAPPER,
-    messages.reduce((acc, message) => acc + "\n  " + message, "")
+    messages.reduce((acc, message) => acc + "\n  " + message, ""),
   );
 };
 

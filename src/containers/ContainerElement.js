@@ -146,7 +146,7 @@ export default class ContainerElement {
     if (Array.isArray(this._contents)) {
       length = this._contents.reduce(
         (acc, val) => acc + (val.length === undefined ? 1 : val.length),
-        0
+        0,
       );
     } else {
       length = this._contents.length === undefined ? 1 : this._contents.length;

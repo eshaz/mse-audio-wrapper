@@ -100,8 +100,8 @@ export default class MSEAudioWrapper {
     if (chunk.constructor === Uint8Array) {
       yield* this._processFrames(
         [...this._codecParser.parseChunk(chunk)].flatMap(
-          (frame) => frame.codecFrames || frame
-        )
+          (frame) => frame.codecFrames || frame,
+        ),
       );
     } else if (Array.isArray(chunk)) {
       yield* this._processFrames(chunk);
