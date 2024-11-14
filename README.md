@@ -70,7 +70,11 @@
       --mdat [audio data]
       ```
 
-## Methods
+## API
+
+### `MSEAudioWrapper`
+
+_Default export_
 
 `const wrapper = new MSEAudioWrapper("audio/mpeg", {minFramesPerSegment: 2, minBytesPerSegment: 576, preferredContainer: "webm"});`
 * `constructor`
@@ -133,6 +137,20 @@
     * OPUS (ISOBMFF) - `audio/mp4;codecs="opus"`
     * OPUS (WEBM) - `audio/webm;codecs="opus"`
     * Vorbis - `audio/webm;codecs="vorbis"`
+
+### `getWrappedMimeType(codec, container = WEBM)`
+
+_Named export_
+
+Returns the mime-type that MSEAudioWrapper will produce given a passed in codec and container type.
+
+* `codec` *required*
+  * Codec of the audio data to wrap
+  * Accepts `aac`, `flac`, `mpeg`, `opus`, `vorbis`
+* `container` *optional*
+  * Accepts `"webm"`, `"fmp4"`
+  * Defaults to `"webm"`
+
 ---
 
 

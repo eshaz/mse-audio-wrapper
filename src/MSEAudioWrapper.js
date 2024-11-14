@@ -34,6 +34,23 @@ import WEBMContainer from "./containers/webm/WEBMContainer.js";
 
 const noOp = () => {};
 
+export const getWrappedMimeType = (codec, container = WEBM) => {
+  switch (codec) {
+    case "mpeg":
+      return `${AUDIO_MP4}"${MP3}"`;
+    case "aac":
+      return `${AUDIO_MP4}"${MP4A_40_2}"`;
+    case "flac":
+      return `${AUDIO_MP4}"${FLAC}"`;
+    case "vorbis":
+      return `${AUDIO_WEBM}"${VORBIS}"`;
+    case "opus":
+      return container === WEBM
+        ? `${AUDIO_WEBM}"${OPUS}"`
+        : `${AUDIO_MP4}"${OPUS}"`;
+  }
+};
+
 export default class MSEAudioWrapper {
   /**
    * @description Wraps audio data into media source API compatible containers
@@ -166,29 +183,23 @@ export default class MSEAudioWrapper {
    * @private
    */
   _getContainer(codec) {
+    this._mimeType = getWrappedMimeType(codec, this.PREFERRED_CONTAINER);
+
     switch (codec) {
       case "mpeg":
-        this._mimeType = `${AUDIO_MP4}"${MP3}"`;
         return new ISOBMFFContainer(MP3);
       case "aac":
-        this._mimeType = `${AUDIO_MP4}"${MP4A_40_2}"`;
         return new ISOBMFFContainer(MP4A_40_2);
       case "flac":
-        this._mimeType = `${AUDIO_MP4}"${FLAC}"`;
         return new ISOBMFFContainer(FLAC);
       case "vorbis":
-        this._mimeType = `${AUDIO_WEBM}"${VORBIS}"`;
-
         this.MAX_SAMPLES_PER_SEGMENT = 32767;
         return new WEBMContainer(VORBIS);
       case "opus":
         if (this.PREFERRED_CONTAINER === WEBM) {
-          this._mimeType = `${AUDIO_WEBM}"${OPUS}"`;
-
           this.MAX_SAMPLES_PER_SEGMENT = 32767;
           return new WEBMContainer(OPUS);
         }
-        this._mimeType = `${AUDIO_MP4}"${OPUS}"`;
         return new ISOBMFFContainer(OPUS);
     }
   }
